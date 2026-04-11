@@ -756,7 +756,6 @@ export default function ProductsPage() {
   const [error,         setError]         = useState(null)
   const [page,          setPage]          = useState(1)
   const [query,         setQuery]         = useState('')
-  const [showAdd,       setShowAdd]       = useState(false)
   const [editItem,      setEditItem]      = useState(null)
   const [deleteItem,    setDeleteItem]    = useState(null)
   const [actionLoading, setActionLoading] = useState(false)
@@ -851,9 +850,6 @@ export default function ProductsPage() {
             className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
             <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
           </button>
-          <button onClick={() => setShowAdd(true)} className="beckn-btn-primary">
-            <Plus size={15} /> Add Product
-          </button>
         </div>
       </div>
 
@@ -922,9 +918,6 @@ export default function ProductsPage() {
       )}
 
       {/* Modals */}
-      {showAdd && (
-        <AddProductModal onClose={() => setShowAdd(false)} onAdded={handleAdded} />
-      )}
       {editItem && (
         <EditModal item={editItem} loading={actionLoading}
           onClose={() => setEditItem(null)} onSave={handleSaveEdit} />

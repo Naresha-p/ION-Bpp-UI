@@ -4,14 +4,13 @@ import { ChevronDown } from 'lucide-react'
 import {
   LayoutDashboard, Package, ShoppingCart, Settings,
   HelpCircle, Users, ChevronRight, CheckCircle2,
-  XCircle, Upload,
+  XCircle,
 } from 'lucide-react'
 import useBecknStore from '../../store/becknStore'
 
 const NAV_ITEMS = [
   { to: '/',          icon: LayoutDashboard, label: 'Dashboard' },
   { to: '/products',  icon: Package,         label: 'Products'  },
-  { to: '/publish',   icon: Upload,          label: 'Publish'   },
   { to: '/orders',    icon: ShoppingCart,    label: 'Orders'    },
   { to: '/settings',  icon: Settings,        label: 'Settings'  },
 ]
@@ -30,7 +29,7 @@ export default function Sidebar() {
         <div className="flex items-center gap-2 w-20 mt-5 ml-5">
           <img alt="Integra Micro Systems" src="https://integramicro.com/en/wp-content/uploads/2025/12/INTEGRA-WHITE-logo-for-Digital-Media-Website-Mobile-Applications-RGB-PNG-Format.png"/>
           <button className="flex items-center gap-1 text-white hover:text-blue-200 transition-colors">
-            <span className="text-sm font-semibold">viooneg</span>
+            <span className="text-sm font-semibold">Joko</span>
             <ChevronDown size={14} />
           </button>
         </div>
@@ -94,7 +93,7 @@ export default function Sidebar() {
       </nav>
 
       {/* Footer */}
-      <div className="px-2 pb-3 space-y-1">
+      {/* <div className="px-2 pb-3 space-y-1">
         <button className="nav-item w-full text-blue-100 hover:bg-white/10 hover:text-white">
           <Users size={16} />
           <span>Ini Beelia</span>
@@ -104,7 +103,7 @@ export default function Sidebar() {
           <HelpCircle size={16} />
           <span>Help &amp; FAQs</span>
         </NavLink>
-      </div>
+      </div> */}
     </aside>
   )
 }

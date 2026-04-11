@@ -513,7 +513,10 @@ export default function PublishPage() {
 
   const handleAdd = (item) => {
     setCatalog([item, ...catalog])
-    showToast('Product added to catalog')
+    setStatusFilter('draft')
+    setCategory('all')
+    setQuery('')
+    showToast('Product added — select it below to publish')
   }
 
   const handleDelete = (id) => {
