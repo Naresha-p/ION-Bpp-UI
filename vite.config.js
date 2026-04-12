@@ -6,18 +6,12 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
-      // Beckn protocol gateway (search, select, init, confirm …)
-      '/api/beckn': {
-        target:      'http://localhost:5001',
-        changeOrigin: true,
-        rewrite:     (path) => path.replace(/^\/api\/beckn/, ''),
-      },
       // BPP UI REST API (dashboard, orders, catalog)
       '/api/bpp-ui': {
-        target:      'https://tsp.nearshop.in',
+        target:       'https://tsp.nearshop.in',
         changeOrigin: true,
-        secure:      true,
-        rewrite:     (path) => path.replace(/^\/api\/bpp-ui/, '/bpp-ui'),
+        secure:       true,
+        rewrite:      (path) => path.replace(/^\/api\/bpp-ui/, '/bpp-ui'),
       },
     },
   },

@@ -6,7 +6,7 @@
 import { useState, useCallback } from 'react'
 import useBecknStore from '../store/becknStore'
 import {
-  becknSearch, becknSelect, becknInit,
+  becknSelect, becknInit,
   becknConfirm, becknStatus, becknTrack,
   becknCancel, becknUpdate, becknRating,
 } from '../api/beckn'
@@ -35,22 +35,20 @@ export function useBeckn() {
     }
   }, [store.isDemoMode])
 
-  // SEARCH
-  const search = useCallback(async (query, filters) => {
-    return run(
-      () => becknSearch(query, filters),
-      () => ({
-        context: { action: 'on_search' },
-        message: {
-          catalog: {
-            providers: [{ items: mockItems.filter((i) =>
-              i.descriptor.name.toLowerCase().includes(query.toLowerCase())
-            )}],
-          },
+  // SEARCH — always returns mock data; buyer-side Beckn gateway not used in BPP portal
+  const search = useCallback(async (query) => {
+    await new Promise((r) => setTimeout(r, 300))
+    return {
+      context: { action: 'on_search' },
+      message: {
+        catalog: {
+          providers: [{ items: mockItems.filter((i) =>
+            i.descriptor.name.toLowerCase().includes((query || '').toLowerCase())
+          )}],
         },
-      })
-    )
-  }, [run])
+      },
+    }
+  }, [])
 
   // SELECT
   const select = useCallback(async (providerId, items) => {

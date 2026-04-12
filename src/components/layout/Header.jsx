@@ -1,23 +1,15 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Search, Command } from 'lucide-react'
-import useBecknStore from '../../store/becknStore'
-import { useBeckn } from '../../hooks/useBeckn'
 
 export default function Header() {
   const navigate = useNavigate()
-  const { setSearchResults, setSearchQuery } = useBecknStore()
-  const { search } = useBeckn()
   const [query, setQuery] = useState('')
 
-  const handleSearch = async (e) => {
+  const handleSearch = (e) => {
     e.preventDefault()
-    if (!query.trim()) return
-    setSearchQuery(query)
-    const res = await search(query)
-    const items = res?.message?.catalog?.providers?.[0]?.items || []
-    setSearchResults(items)
-    navigate('/products?search=1')
+    const q = query.trim()
+    navigate(q ? `/products?q=${encodeURIComponent(q)}` : '/products')
   }
 
   return (

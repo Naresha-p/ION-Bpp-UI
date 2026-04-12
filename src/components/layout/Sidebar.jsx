@@ -1,11 +1,12 @@
 import { NavLink } from 'react-router-dom'
-import { LayoutDashboard, Package, ShoppingCart, Upload } from 'lucide-react'
+import { LayoutDashboard, Package, ShoppingCart, Upload, Settings } from 'lucide-react'
 
 const NAV_ITEMS = [
   { to: '/',         icon: LayoutDashboard, label: 'Dashboard' },
   { to: '/products', icon: Package,         label: 'Products'  },
   { to: '/publish',  icon: Upload,          label: 'Publish'   },
   { to: '/orders',   icon: ShoppingCart,    label: 'Orders'    },
+  { to: '/settings', icon: Settings,        label: 'Settings'  },
 ]
 
 export default function Sidebar() {

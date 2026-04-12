@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import {
   Search, Package, Edit2, Trash2, X, Save, Plus,
   ChevronDown, ChevronUp, RefreshCw, CheckCircle2, XCircle, AlertCircle,
@@ -1237,12 +1238,13 @@ function ProductSkeleton() {
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function ProductsPage() {
+  const [searchParams, setSearchParams] = useSearchParams()
   const [products,      setProducts]      = useState([])
   const [pagination,    setPagination]    = useState({ total: 0, totalPages: 1 })
   const [loading,       setLoading]       = useState(false)
   const [error,         setError]         = useState(null)
   const [page,          setPage]          = useState(1)
-  const [query,         setQuery]         = useState('')
+  const [query,         setQuery]         = useState(() => searchParams.get('q') || '')
   const [editItem,      setEditItem]      = useState(null)
   const [deleteItem,    setDeleteItem]    = useState(null)
   const [actionLoading, setActionLoading] = useState(false)
@@ -1334,7 +1336,11 @@ export default function ProductsPage() {
       {/* Search */}
       <div className="relative max-w-sm">
         <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-3)' }} />
-        <input value={query} onChange={(e) => setQuery(e.target.value)}
+        <input value={query} onChange={(e) => {
+            const v = e.target.value
+            setQuery(v)
+            setSearchParams(v ? { q: v } : {}, { replace: true })
+          }}
           placeholder="Search by name or ID…" className="beckn-input pl-9 w-full" />
       </div>
 
@@ -1353,7 +1359,7 @@ export default function ProductsPage() {
           </div>
           <p className="font-semibold text-sm" style={{ color: 'var(--text-2)' }}>No products found</p>
           {query && (
-            <button onClick={() => setQuery('')}
+            <button onClick={() => { setQuery(''); setSearchParams({}, { replace: true }) }}
               className="mt-2 text-xs font-medium" style={{ color: '#a5b4fc' }}>
               Clear search
             </button>
