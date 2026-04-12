@@ -103,14 +103,14 @@ export function classifyError(err) {
 
 /** Maps error type → tailwind color tokens used by ErrorDisplay */
 export const ERR_STYLE = {
-  [ERR.NETWORK]:      { bg: 'bg-amber-50',  border: 'border-amber-200',  text: 'text-amber-800',  icon: 'text-amber-500'  },
-  [ERR.TIMEOUT]:      { bg: 'bg-amber-50',  border: 'border-amber-200',  text: 'text-amber-800',  icon: 'text-amber-500'  },
-  [ERR.UNAUTHORIZED]: { bg: 'bg-red-50',    border: 'border-red-200',    text: 'text-red-800',    icon: 'text-red-500'    },
-  [ERR.FORBIDDEN]:    { bg: 'bg-red-50',    border: 'border-red-200',    text: 'text-red-800',    icon: 'text-red-500'    },
-  [ERR.NOT_FOUND]:    { bg: 'bg-gray-50',   border: 'border-gray-200',   text: 'text-gray-700',   icon: 'text-gray-400'   },
-  [ERR.VALIDATION]:   { bg: 'bg-orange-50', border: 'border-orange-200', text: 'text-orange-800', icon: 'text-orange-500' },
-  [ERR.SERVER]:       { bg: 'bg-red-50',    border: 'border-red-200',    text: 'text-red-800',    icon: 'text-red-500'    },
-  [ERR.UNKNOWN]:      { bg: 'bg-red-50',    border: 'border-red-200',    text: 'text-red-800',    icon: 'text-red-500'    },
+  [ERR.NETWORK]:      { bg: 'bg-amber-500/10',  border: 'border-amber-500/20',  text: 'text-amber-300',  icon: 'text-amber-400'  },
+  [ERR.TIMEOUT]:      { bg: 'bg-amber-500/10',  border: 'border-amber-500/20',  text: 'text-amber-300',  icon: 'text-amber-400'  },
+  [ERR.UNAUTHORIZED]: { bg: 'bg-red-500/10',    border: 'border-red-500/20',    text: 'text-red-300',    icon: 'text-red-400'    },
+  [ERR.FORBIDDEN]:    { bg: 'bg-red-500/10',    border: 'border-red-500/20',    text: 'text-red-300',    icon: 'text-red-400'    },
+  [ERR.NOT_FOUND]:    { bg: 'bg-zinc-500/10',   border: 'border-zinc-500/20',   text: 'text-zinc-400',   icon: 'text-zinc-500'   },
+  [ERR.VALIDATION]:   { bg: 'bg-orange-500/10', border: 'border-orange-500/20', text: 'text-orange-300', icon: 'text-orange-400' },
+  [ERR.SERVER]:       { bg: 'bg-red-500/10',    border: 'border-red-500/20',    text: 'text-red-300',    icon: 'text-red-400'    },
+  [ERR.UNKNOWN]:      { bg: 'bg-red-500/10',    border: 'border-red-500/20',    text: 'text-red-300',    icon: 'text-red-400'    },
 }
 
 export const getErrStyle = (err) =>

@@ -115,10 +115,10 @@ export function ErrorPage({ error, onRetry, compact = false }) {
         ${style.bg} border ${style.border}`}>
         <Icon size={28} className={style.icon} />
       </div>
-      <h3 className="text-base font-bold text-gray-800 mb-1">{title}</h3>
-      <p className="text-sm text-gray-500 max-w-sm">{msg}</p>
+      <h3 className="text-base font-bold mb-1" style={{ color: 'var(--text-1)' }}>{title}</h3>
+      <p className="text-sm max-w-sm" style={{ color: 'var(--text-2)' }}>{msg}</p>
       {error?.status && (
-        <p className="text-xs font-mono text-gray-400 mt-1">HTTP {error?.status}</p>
+        <p className="text-xs font-mono mt-1" style={{ color: 'var(--text-3)' }}>HTTP {error?.status}</p>
       )}
       {onRetry && (
         <button
@@ -141,18 +141,13 @@ export function ErrorPage({ error, onRetry, compact = false }) {
 export function Toast({ toast }) {
   if (!toast) return null
 
-  const variants = {
-    success: { bg: 'bg-emerald-600', Icon: CheckCircle2 },
-    error:   { bg: 'bg-red-600',     Icon: AlertCircle  },
-    info:    { bg: 'bg-blue-600',    Icon: AlertCircle  },
-  }
-  const { bg, Icon } = variants[toast.type] || variants.error
+  const isSuccess = toast.type === 'success'
 
   return (
-    <div className={`fixed bottom-6 right-6 z-[60] flex items-center gap-2.5
-      px-4 py-3 rounded-xl shadow-xl text-sm font-medium text-white
-      animate-in fade-in slide-in-from-bottom-2 ${bg}`}>
-      <Icon size={15} className="flex-shrink-0" />
+    <div className={isSuccess ? 'toast-success' : 'toast-error'}>
+      {isSuccess
+        ? <CheckCircle2 size={15} style={{ color: '#86efac', flexShrink: 0 }} />
+        : <AlertCircle  size={15} style={{ color: '#fda4af', flexShrink: 0 }} />}
       <span>{toast.message}</span>
     </div>
   )

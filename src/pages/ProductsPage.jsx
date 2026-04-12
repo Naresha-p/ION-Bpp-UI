@@ -24,8 +24,8 @@ const RETURN_METHODS   = ['SELLER_PICKUP', 'BUYER_DROP']
 
 function Label({ children, required }) {
   return (
-    <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
-      {children}{required && <span className="text-red-500 ml-0.5">*</span>}
+    <label className="block text-xs font-semibold uppercase mb-1" style={{ color: 'var(--text-3)' }}>
+      {children}{required && <span className="ml-0.5" style={{ color: '#f87171' }}>*</span>}
     </label>
   )
 }
@@ -33,7 +33,7 @@ function Label({ children, required }) {
 function SectionHeader({ title, open, onToggle }) {
   return (
     <button type="button" onClick={onToggle}
-      className="w-full flex items-center justify-between py-2 text-xs font-bold text-gray-600 uppercase tracking-wide border-b border-gray-100 mb-3">
+      className="section-toggle">
       {title}
       {open ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
     </button>
@@ -162,13 +162,13 @@ function AddProductModal({ onClose, onAdded }) {
   }
 
   return (
-    <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[92vh] flex flex-col">
+    <div className="modal-backdrop">
+      <div className="modal-panel w-full max-w-2xl max-h-[92vh] flex flex-col">
 
         {/* Header */}
-        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between flex-shrink-0">
-          <h2 className="font-semibold text-gray-800">Add New Product</h2>
-          <button onClick={onClose} disabled={loading} className="text-gray-400 hover:text-gray-600">
+        <div className="px-6 py-4 flex items-center justify-between flex-shrink-0" style={{ borderBottom: '1px solid var(--border)' }}>
+          <h2 className="font-semibold" style={{ color: 'var(--text-1)' }}>Add New Product</h2>
+          <button onClick={onClose} disabled={loading} className="beckn-btn-ghost p-1.5">
             <X size={18} />
           </button>
         </div>
@@ -298,8 +298,8 @@ function AddProductModal({ onClose, onAdded }) {
                       <button key={a} type="button" onClick={() => toggleAllergen(a)}
                         className={`text-xs px-2.5 py-1 rounded-full border font-medium transition-colors ${
                           form.allergens.includes(a)
-                            ? 'bg-red-600 text-white border-red-600'
-                            : 'bg-white text-gray-500 border-gray-200 hover:border-red-300'
+                            ? 'tag-pill active-red'
+                            : 'tag-pill'
                         }`}>
                         {a}
                       </button>
@@ -327,13 +327,13 @@ function AddProductModal({ onClose, onAdded }) {
                 </div>
 
                 <div className="flex gap-4">
-                  <label className="flex items-center gap-2 cursor-pointer text-sm text-gray-700">
+                  <label className="flex items-center gap-2 cursor-pointer text-sm" style={{ color: 'var(--text-2)' }}>
                     <input type="checkbox" checked={form.isActive}
                       onChange={(e) => set('isActive', e.target.checked)}
                       className="w-4 h-4 accent-blue-600" />
                     Active
                   </label>
-                  <label className="flex items-center gap-2 cursor-pointer text-sm text-gray-700">
+                  <label className="flex items-center gap-2 cursor-pointer text-sm" style={{ color: 'var(--text-2)' }}>
                     <input type="checkbox" checked={form.isPublished}
                       onChange={(e) => set('isPublished', e.target.checked)}
                       className="w-4 h-4 accent-blue-600" />
@@ -352,8 +352,8 @@ function AddProductModal({ onClose, onAdded }) {
               <div className="space-y-4">
 
                 {/* Returns */}
-                <div className="border border-gray-100 rounded-xl p-3 space-y-2">
-                  <label className="flex items-center gap-2 cursor-pointer text-sm font-semibold text-gray-700">
+                <div className="rounded-xl p-3 space-y-2" style={{ border: '1px solid var(--border)', background: 'var(--surface-r)' }}>
+                  <label className="flex items-center gap-2 cursor-pointer text-sm font-semibold" style={{ color: 'var(--text-2)' }}>
                     <input type="checkbox" checked={form.returnsAllowed}
                       onChange={(e) => set('returnsAllowed', e.target.checked)}
                       className="w-4 h-4 accent-blue-600" />
@@ -379,8 +379,8 @@ function AddProductModal({ onClose, onAdded }) {
                 </div>
 
                 {/* Cancellation */}
-                <div className="border border-gray-100 rounded-xl p-3 space-y-2">
-                  <label className="flex items-center gap-2 cursor-pointer text-sm font-semibold text-gray-700">
+                <div className="rounded-xl p-3 space-y-2" style={{ border: '1px solid var(--border)', background: 'var(--surface-r)' }}>
+                  <label className="flex items-center gap-2 cursor-pointer text-sm font-semibold" style={{ color: 'var(--text-2)' }}>
                     <input type="checkbox" checked={form.cancellationAllowed}
                       onChange={(e) => set('cancellationAllowed', e.target.checked)}
                       className="w-4 h-4 accent-blue-600" />
@@ -406,8 +406,8 @@ function AddProductModal({ onClose, onAdded }) {
                 </div>
 
                 {/* Replacement */}
-                <div className="border border-gray-100 rounded-xl p-3 space-y-2">
-                  <label className="flex items-center gap-2 cursor-pointer text-sm font-semibold text-gray-700">
+                <div className="rounded-xl p-3 space-y-2" style={{ border: '1px solid var(--border)', background: 'var(--surface-r)' }}>
+                  <label className="flex items-center gap-2 cursor-pointer text-sm font-semibold" style={{ color: 'var(--text-2)' }}>
                     <input type="checkbox" checked={form.replacementAllowed}
                       onChange={(e) => set('replacementAllowed', e.target.checked)}
                       className="w-4 h-4 accent-blue-600" />
@@ -440,8 +440,8 @@ function AddProductModal({ onClose, onAdded }) {
                       <button key={m} type="button" onClick={() => togglePayment(m)}
                         className={`text-xs px-2.5 py-1 rounded-full border font-medium transition-colors ${
                           form.paymentMethods.includes(m)
-                            ? 'bg-blue-600 text-white border-blue-600'
-                            : 'bg-white text-gray-500 border-gray-200 hover:border-blue-300'
+                            ? 'tag-pill active'
+                            : 'tag-pill'
                         }`}>
                         {m}
                       </button>
@@ -449,7 +449,7 @@ function AddProductModal({ onClose, onAdded }) {
                   </div>
                 </div>
 
-                <label className="flex items-center gap-2 cursor-pointer text-sm text-gray-700">
+                <label className="flex items-center gap-2 cursor-pointer text-sm" style={{ color: 'var(--text-2)' }}>
                   <input type="checkbox" checked={form.codAvailable}
                     onChange={(e) => set('codAvailable', e.target.checked)}
                     className="w-4 h-4 accent-blue-600" />
@@ -487,8 +487,8 @@ function AddProductModal({ onClose, onAdded }) {
                       <button key={d} type="button" onClick={() => toggleDay(d)}
                         className={`text-xs px-2.5 py-1 rounded-full border font-medium transition-colors ${
                           form.timingDays.includes(d)
-                            ? 'bg-gray-800 text-white border-gray-800'
-                            : 'bg-white text-gray-500 border-gray-200 hover:border-gray-400'
+                            ? 'tag-pill active-dark'
+                            : 'tag-pill'
                         }`}>
                         {d}
                       </button>
@@ -523,7 +523,7 @@ function AddProductModal({ onClose, onAdded }) {
         </form>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-gray-100 flex gap-3 flex-shrink-0">
+        <div className="px-6 py-4 flex gap-3 flex-shrink-0" style={{ borderTop: '1px solid var(--border)' }}>
           <button type="button" onClick={onClose} disabled={loading} className="beckn-btn-secondary flex-1">
             Cancel
           </button>
@@ -549,7 +549,7 @@ function FieldError({ msg }) {
 function SectionToggle({ title, open, onToggle }) {
   return (
     <button type="button" onClick={onToggle}
-      className="w-full flex items-center justify-between py-2 text-xs font-bold text-gray-600 uppercase tracking-wide border-b border-gray-100 mb-3">
+      className="section-toggle">
       {title}
       {open ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
     </button>
@@ -714,20 +714,20 @@ function EditModal({ item, onClose, onSaved }) {
   const hasErrors = Object.keys(errors).length > 0
 
   return (
-    <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[92vh] flex flex-col">
+    <div className="modal-backdrop">
+      <div className="modal-panel w-full max-w-2xl max-h-[92vh] flex flex-col">
 
         {/* Header */}
-        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between flex-shrink-0">
+        <div className="px-6 py-4 flex items-center justify-between flex-shrink-0" style={{ borderBottom: '1px solid var(--border)' }}>
           <div>
-            <h2 className="font-semibold text-gray-800">Edit Product</h2>
+            <h2 className="font-semibold" style={{ color: 'var(--text-1)' }}>Edit Product</h2>
             {hasErrors && (
               <p className="text-xs text-red-600 mt-0.5 flex items-center gap-1">
                 <AlertCircle size={11} /> Fix {Object.keys(errors).length} error{Object.keys(errors).length !== 1 ? 's' : ''} before saving
               </p>
             )}
           </div>
-          <button onClick={onClose} disabled={loading} className="text-gray-400 hover:text-gray-600">
+          <button onClick={onClose} disabled={loading} className="beckn-btn-ghost p-1.5">
             <X size={18} />
           </button>
         </div>
@@ -753,7 +753,7 @@ function EditModal({ item, onClose, onSaved }) {
                 {/* Resource ID — read-only */}
                 <div>
                   <Label>Resource ID <span className="normal-case text-gray-400 font-normal">(read-only)</span></Label>
-                  <div className="beckn-input bg-gray-50 text-gray-500 font-mono text-xs select-all cursor-default truncate">
+                  <div className="beckn-input font-mono text-xs select-all cursor-default truncate" style={{ background: 'var(--surface-r)', color: 'var(--text-3)' }}>
                     {resourceId}
                   </div>
                 </div>
@@ -873,8 +873,8 @@ function EditModal({ item, onClose, onSaved }) {
                       <button key={a} type="button" onClick={() => toggleAllergen(a)}
                         className={`text-xs px-2.5 py-1 rounded-full border font-medium transition-colors ${
                           form.allergens.includes(a)
-                            ? 'bg-red-600 text-white border-red-600'
-                            : 'bg-white text-gray-500 border-gray-200 hover:border-red-300'
+                            ? 'tag-pill active-red'
+                            : 'tag-pill'
                         }`}>
                         {a}
                       </button>
@@ -903,13 +903,13 @@ function EditModal({ item, onClose, onSaved }) {
                 </div>
 
                 <div className="flex gap-4">
-                  <label className="flex items-center gap-2 cursor-pointer text-sm text-gray-700">
+                  <label className="flex items-center gap-2 cursor-pointer text-sm" style={{ color: 'var(--text-2)' }}>
                     <input type="checkbox" checked={form.isActive}
                       onChange={(e) => set('isActive', e.target.checked)}
                       className="w-4 h-4 accent-blue-600" />
                     Active
                   </label>
-                  <label className="flex items-center gap-2 cursor-pointer text-sm text-gray-700">
+                  <label className="flex items-center gap-2 cursor-pointer text-sm" style={{ color: 'var(--text-2)' }}>
                     <input type="checkbox" checked={form.isPublished}
                       onChange={(e) => set('isPublished', e.target.checked)}
                       className="w-4 h-4 accent-blue-600" />
@@ -926,8 +926,8 @@ function EditModal({ item, onClose, onSaved }) {
               onToggle={() => toggleSection('policies')} />
             {sections.policies && (
               <div className="space-y-4">
-                <div className="border border-gray-100 rounded-xl p-3 space-y-2">
-                  <label className="flex items-center gap-2 cursor-pointer text-sm font-semibold text-gray-700">
+                <div className="rounded-xl p-3 space-y-2" style={{ border: '1px solid var(--border)', background: 'var(--surface-r)' }}>
+                  <label className="flex items-center gap-2 cursor-pointer text-sm font-semibold" style={{ color: 'var(--text-2)' }}>
                     <input type="checkbox" checked={form.returnsAllowed}
                       onChange={(e) => set('returnsAllowed', e.target.checked)}
                       className="w-4 h-4 accent-blue-600" />
@@ -947,8 +947,8 @@ function EditModal({ item, onClose, onSaved }) {
                   )}
                 </div>
 
-                <div className="border border-gray-100 rounded-xl p-3 space-y-2">
-                  <label className="flex items-center gap-2 cursor-pointer text-sm font-semibold text-gray-700">
+                <div className="rounded-xl p-3 space-y-2" style={{ border: '1px solid var(--border)', background: 'var(--surface-r)' }}>
+                  <label className="flex items-center gap-2 cursor-pointer text-sm font-semibold" style={{ color: 'var(--text-2)' }}>
                     <input type="checkbox" checked={form.cancellationAllowed}
                       onChange={(e) => set('cancellationAllowed', e.target.checked)}
                       className="w-4 h-4 accent-blue-600" />
@@ -968,8 +968,8 @@ function EditModal({ item, onClose, onSaved }) {
                   )}
                 </div>
 
-                <div className="border border-gray-100 rounded-xl p-3 space-y-2">
-                  <label className="flex items-center gap-2 cursor-pointer text-sm font-semibold text-gray-700">
+                <div className="rounded-xl p-3 space-y-2" style={{ border: '1px solid var(--border)', background: 'var(--surface-r)' }}>
+                  <label className="flex items-center gap-2 cursor-pointer text-sm font-semibold" style={{ color: 'var(--text-2)' }}>
                     <input type="checkbox" checked={form.replacementAllowed}
                       onChange={(e) => set('replacementAllowed', e.target.checked)}
                       className="w-4 h-4 accent-blue-600" />
@@ -996,8 +996,8 @@ function EditModal({ item, onClose, onSaved }) {
                       <button key={m} type="button" onClick={() => togglePayment(m)}
                         className={`text-xs px-2.5 py-1 rounded-full border font-medium transition-colors ${
                           form.paymentMethods.includes(m)
-                            ? 'bg-blue-600 text-white border-blue-600'
-                            : 'bg-white text-gray-500 border-gray-200 hover:border-blue-300'
+                            ? 'tag-pill active'
+                            : 'tag-pill'
                         }`}>
                         {m}
                       </button>
@@ -1005,7 +1005,7 @@ function EditModal({ item, onClose, onSaved }) {
                   </div>
                 </div>
 
-                <label className="flex items-center gap-2 cursor-pointer text-sm text-gray-700">
+                <label className="flex items-center gap-2 cursor-pointer text-sm" style={{ color: 'var(--text-2)' }}>
                   <input type="checkbox" checked={form.codAvailable}
                     onChange={(e) => set('codAvailable', e.target.checked)}
                     className="w-4 h-4 accent-blue-600" />
@@ -1039,8 +1039,8 @@ function EditModal({ item, onClose, onSaved }) {
                       <button key={d} type="button" onClick={() => toggleDay(d)}
                         className={`text-xs px-2.5 py-1 rounded-full border font-medium transition-colors ${
                           form.timingDays.includes(d)
-                            ? 'bg-gray-800 text-white border-gray-800'
-                            : 'bg-white text-gray-500 border-gray-200 hover:border-gray-400'
+                            ? 'tag-pill active-dark'
+                            : 'tag-pill'
                         }`}>
                         {d}
                       </button>
@@ -1071,7 +1071,7 @@ function EditModal({ item, onClose, onSaved }) {
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-gray-100 flex gap-3 flex-shrink-0">
+        <div className="px-6 py-4 flex gap-3 flex-shrink-0" style={{ borderTop: '1px solid var(--border)' }}>
           <button type="button" onClick={onClose} disabled={loading} className="beckn-btn-secondary flex-1">
             Cancel
           </button>
@@ -1091,21 +1091,21 @@ function EditModal({ item, onClose, onSaved }) {
 
 function DeleteConfirmModal({ item, onConfirm, onClose, loading }) {
   return (
-    <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm">
-        <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
-          <h2 className="font-semibold text-gray-800">Delete Product</h2>
-          <button onClick={onClose} disabled={loading} className="text-gray-400 hover:text-gray-600">
+    <div className="modal-backdrop">
+      <div className="modal-panel w-full max-w-sm">
+        <div className="px-5 py-4 flex items-center justify-between" style={{ borderBottom: '1px solid var(--border)' }}>
+          <h2 className="font-semibold" style={{ color: 'var(--text-1)' }}>Delete Product</h2>
+          <button onClick={onClose} disabled={loading} className="beckn-btn-ghost p-1.5">
             <X size={18} />
           </button>
         </div>
         <div className="p-5 space-y-4">
-          <p className="text-sm text-gray-600">
+          <p className="text-sm" style={{ color: 'var(--text-2)' }}>
             Are you sure you want to delete{' '}
-            <span className="font-semibold text-gray-900">{item.name}</span>?
+            <span className="font-semibold" style={{ color: 'var(--text-1)' }}>{item.name}</span>?
             This action cannot be undone.
           </p>
-          <p className="text-xs font-mono text-gray-400">ID: {item.resourceId || item._id}</p>
+          <p className="text-xs font-mono" style={{ color: 'var(--text-3)' }}>ID: {item.resourceId || item._id}</p>
           <div className="flex gap-3">
             <button onClick={onClose} disabled={loading} className="beckn-btn-secondary flex-1">
               Cancel
@@ -1137,24 +1137,27 @@ function ProductCard({ item, onEdit, onDelete }) {
   const isPublished = item.isPublished
 
   return (
-    <div className="beckn-card hover:shadow-md transition-shadow flex flex-col">
+    <div className="beckn-card flex flex-col hover:-translate-y-0.5 transition-all duration-200 overflow-hidden">
       {/* Image */}
-      <div className="h-36 bg-gradient-to-br from-gray-100 to-gray-200 rounded-t-xl overflow-hidden flex-shrink-0 relative">
+      <div className="h-36 rounded-t-xl overflow-hidden flex-shrink-0 relative"
+        style={{ background: 'var(--surface-r)' }}>
         {imageUri ? (
           <img src={imageUri} alt={name} className="w-full h-full object-cover" />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
-            <Package size={40} className="text-gray-300" />
+            <Package size={36} style={{ color: 'var(--text-3)' }} />
           </div>
         )}
         <div className="absolute top-2 right-2 flex flex-col gap-1 items-end">
           {isPublished && (
-            <span className="text-[10px] font-bold bg-emerald-500 text-white px-2 py-0.5 rounded-full">
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+              style={{ background: 'rgba(34,197,94,0.15)', color: '#86efac', border: '1px solid rgba(34,197,94,0.3)' }}>
               Published
             </span>
           )}
           {isActive === false && (
-            <span className="text-[10px] font-bold bg-gray-500 text-white px-2 py-0.5 rounded-full">
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+              style={{ background: 'var(--surface-o)', color: 'var(--text-3)', border: '1px solid var(--border)' }}>
               Inactive
             </span>
           )}
@@ -1164,44 +1167,48 @@ function ProductCard({ item, onEdit, onDelete }) {
       {/* Content */}
       <div className="p-3 space-y-2 flex-1 flex flex-col">
         {foodClass && (
-          <span className={`text-[10px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full w-fit
-            ${foodClass === 'VEG' ? 'bg-green-50 text-green-700'
-              : foodClass === 'EGG' ? 'bg-yellow-50 text-yellow-700'
-              : 'bg-red-50 text-red-700'}`}>
+          <span className="text-[10px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full w-fit"
+            style={
+              foodClass === 'VEG'
+                ? { background: 'rgba(34,197,94,0.1)',  color: '#86efac',  border: '1px solid rgba(34,197,94,0.2)' }
+                : foodClass === 'EGG'
+                ? { background: 'rgba(234,179,8,0.1)',  color: '#fde047',  border: '1px solid rgba(234,179,8,0.2)' }
+                : { background: 'rgba(239,68,68,0.1)',  color: '#fca5a5',  border: '1px solid rgba(239,68,68,0.2)' }
+            }>
             {foodClass}
           </span>
         )}
-        <h3 className="font-semibold text-gray-800 text-sm leading-tight line-clamp-2 flex-1">
+        <h3 className="font-semibold text-sm leading-tight line-clamp-2 flex-1" style={{ color: 'var(--text-1)' }}>
           {name}
         </h3>
         {shortDesc && (
-          <p className="text-xs text-gray-500 line-clamp-1">{shortDesc}</p>
+          <p className="text-xs line-clamp-1" style={{ color: 'var(--text-3)' }}>{shortDesc}</p>
         )}
         <div className="flex items-center justify-between">
-          <p className="font-bold text-gray-900 text-sm">
-            {price != null
-              ? (currency === 'IDR' ? formatIDR(price) : `${currency} ${price}`)
-              : '—'}
+          <p className="font-bold text-sm" style={{ color: 'var(--text-1)' }}>
+            {price != null ? (currency === 'IDR' ? formatIDR(price) : `${currency} ${price}`) : '—'}
           </p>
           {isActive !== undefined && (
             isActive
-              ? <CheckCircle2 size={13} className="text-emerald-500" />
-              : <XCircle size={13} className="text-gray-400" />
+              ? <CheckCircle2 size={13} style={{ color: 'var(--success)' }} />
+              : <XCircle size={13} style={{ color: 'var(--text-3)' }} />
           )}
         </div>
-        <p className="text-[10px] font-mono text-gray-400 truncate">{resourceId}</p>
+        <p className="text-[10px] font-mono truncate" style={{ color: 'var(--text-3)' }}>{resourceId}</p>
 
-        <div className="flex gap-2 pt-1">
+        <div className="flex gap-1.5 pt-1">
           <button onClick={() => onEdit(item)}
-            className="flex-1 flex items-center justify-center gap-1.5 py-1.5 px-3
-              border border-gray-200 rounded-lg text-xs font-semibold text-gray-700
-              hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50 transition-colors">
+            className="flex-1 flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-lg text-xs font-semibold transition-all"
+            style={{ border: '1px solid var(--border)', color: 'var(--text-2)', background: 'transparent' }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.5)'; e.currentTarget.style.color = '#a5b4fc'; e.currentTarget.style.background = 'rgba(99,102,241,0.08)' }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-2)'; e.currentTarget.style.background = 'transparent' }}>
             <Edit2 size={12} /> Edit
           </button>
           <button onClick={() => onDelete(item)}
-            className="flex-1 flex items-center justify-center gap-1.5 py-1.5 px-3
-              border border-gray-200 rounded-lg text-xs font-semibold text-gray-700
-              hover:border-red-400 hover:text-red-600 hover:bg-red-50 transition-colors">
+            className="flex-1 flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-lg text-xs font-semibold transition-all"
+            style={{ border: '1px solid var(--border)', color: 'var(--text-2)', background: 'transparent' }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(244,63,94,0.4)'; e.currentTarget.style.color = '#fda4af'; e.currentTarget.style.background = 'rgba(244,63,94,0.08)' }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-2)'; e.currentTarget.style.background = 'transparent' }}>
             <Trash2 size={12} /> Delete
           </button>
         </div>
@@ -1214,14 +1221,14 @@ function ProductCard({ item, onEdit, onDelete }) {
 
 function ProductSkeleton() {
   return (
-    <div className="beckn-card animate-pulse">
-      <div className="h-36 bg-gray-100 rounded-t-xl" />
-      <div className="p-3 space-y-2">
-        <div className="h-3 bg-gray-100 rounded w-16" />
-        <div className="h-4 bg-gray-100 rounded w-3/4" />
-        <div className="h-3 bg-gray-100 rounded w-full" />
-        <div className="h-4 bg-gray-100 rounded w-1/2" />
-        <div className="h-8 bg-gray-100 rounded-lg" />
+    <div className="beckn-card overflow-hidden">
+      <div className="h-36 rounded-t-xl skeleton" />
+      <div className="p-3 space-y-2.5">
+        <div className="h-3 skeleton rounded w-14" />
+        <div className="h-4 skeleton rounded w-3/4" />
+        <div className="h-3 skeleton rounded w-full" />
+        <div className="h-4 skeleton rounded w-1/3" />
+        <div className="h-8 skeleton rounded-lg" />
       </div>
     </div>
   )
@@ -1306,22 +1313,19 @@ export default function ProductsPage() {
   const { total, totalPages } = pagination
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-5 animate-fade-in">
 
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-xl font-bold text-gray-900">Products</h1>
-          <p className="text-sm text-gray-500 mt-0.5">
+          <h1 className="text-xl font-bold tracking-tight" style={{ color: 'var(--text-1)' }}>Products</h1>
+          <p className="text-sm mt-0.5" style={{ color: 'var(--text-3)' }}>
             {loading ? 'Loading…' : `${total} product${total !== 1 ? 's' : ''} · page ${page} of ${totalPages}`}
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <button onClick={fetchProducts} disabled={loading} title="Refresh"
-            className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
-            <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
-          </button>
-        </div>
+        <button onClick={fetchProducts} disabled={loading} className="beckn-btn-ghost p-2 rounded-lg">
+          <RefreshCw size={15} className={loading ? 'animate-spin' : ''} />
+        </button>
       </div>
 
       {/* Error */}
@@ -1329,7 +1333,7 @@ export default function ProductsPage() {
 
       {/* Search */}
       <div className="relative max-w-sm">
-        <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+        <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-3)' }} />
         <input value={query} onChange={(e) => setQuery(e.target.value)}
           placeholder="Search by name or ID…" className="beckn-input pl-9 w-full" />
       </div>
@@ -1342,12 +1346,15 @@ export default function ProductsPage() {
       ) : error && products.length === 0 ? (
         <ErrorPage error={error} onRetry={fetchProducts} />
       ) : filtered.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-16 text-gray-400">
-          <Package size={40} className="mb-3 opacity-40" />
-          <p className="font-medium text-gray-500">No products found</p>
+        <div className="flex flex-col items-center justify-center py-20">
+          <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-4"
+            style={{ background: 'var(--surface-r)', border: '1px solid var(--border)' }}>
+            <Package size={24} style={{ color: 'var(--text-3)' }} />
+          </div>
+          <p className="font-semibold text-sm" style={{ color: 'var(--text-2)' }}>No products found</p>
           {query && (
             <button onClick={() => setQuery('')}
-              className="mt-2 text-sm text-blue-500 hover:underline">
+              className="mt-2 text-xs font-medium" style={{ color: '#a5b4fc' }}>
               Clear search
             </button>
           )}
@@ -1367,21 +1374,17 @@ export default function ProductsPage() {
 
       {/* Pagination */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-between text-sm text-gray-500">
+        <div className="flex items-center justify-between text-sm" style={{ color: 'var(--text-3)' }}>
           <span>Page {page} of {totalPages} · {total} products</span>
-          <div className="flex items-center gap-1">
-            <button
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
+          <div className="flex items-center gap-1.5">
+            <button onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={page === 1 || loading}
-              className="px-3 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-50
-                disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
+              className="beckn-btn-secondary py-1.5 px-3 text-xs disabled:opacity-30">
               ← Prev
             </button>
-            <button
-              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
               disabled={page >= totalPages || loading}
-              className="px-3 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-50
-                disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
+              className="beckn-btn-secondary py-1.5 px-3 text-xs disabled:opacity-30">
               Next →
             </button>
           </div>

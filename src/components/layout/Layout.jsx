@@ -8,21 +8,20 @@ export default function Layout() {
   const { isDemoMode } = useBecknStore()
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden bg-gray-50">
-      {/* Full-width top navbar */}
+    <div className="flex flex-col h-screen overflow-hidden" style={{ background: 'var(--bg)' }}>
       <Header />
 
-      {/* Body: sidebar + main content, sits below the 64px navbar */}
-      <div className="flex flex-1 overflow-hidden pt-16">
+      <div className="flex flex-1 overflow-hidden pt-14">
         <Sidebar />
 
         <main className="flex-1 ml-56 overflow-y-auto">
           {isDemoMode && (
-            <div className="flex items-center gap-2 mx-6 mt-4 px-4 py-2.5 bg-blue-50 border border-blue-200 rounded-xl">
-              <span className="text-blue-500 text-sm">✦</span>
-              <span className="text-blue-700 text-sm font-semibold">Demo Mode</span>
-              <span className="text-blue-600 text-sm ml-1">
-                This is a demo display for ION Indonesia
+            <div className="mx-6 mt-4 px-4 py-2.5 rounded-xl flex items-center gap-2 text-sm"
+              style={{ background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.2)', color: '#a5b4fc' }}>
+              <span className="text-base leading-none">✦</span>
+              <span className="font-semibold">Demo Mode</span>
+              <span style={{ color: 'var(--text-2)' }} className="ml-1">
+                Live data is simulated — connect your BPP backend to go live.
               </span>
             </div>
           )}

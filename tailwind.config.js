@@ -7,27 +7,41 @@ export default {
   theme: {
     extend: {
       colors: {
-        'ion-blue': {
-          50:  '#eff6ff',
-          100: '#dbeafe',
-          500: '#3b82f6',
-          600: '#2563eb',
-          700: '#1d4ed8',
-          800: '#1e40af',
-          900: '#1e3a8a',
+        surface: {
+          DEFAULT: '#141418',
+          raised:  '#1c1c22',
+          overlay: '#222228',
+          border:  'rgba(255,255,255,0.08)',
         },
-        'ion-teal': {
-          500: '#14b8a6',
-          600: '#0d9488',
-        }
+        accent: {
+          DEFAULT: '#6366f1',
+          hover:   '#818cf8',
+          muted:   'rgba(99,102,241,0.15)',
+        },
       },
       backgroundImage: {
-        'ion-gradient': 'linear-gradient(135deg, #1e3a8a 0%, #1d4ed8 50%, #2563eb 100%)',
-        'card-blue': 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
-        'card-red': 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
-        'card-orange': 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)',
-        'card-teal': 'linear-gradient(135deg, #14b8a6 0%, #0d9488 100%)',
-      }
+        'premium-gradient': 'linear-gradient(135deg, #0d0d10 0%, #141418 100%)',
+        'card-glow-blue':   'linear-gradient(135deg, #1e3a8a22, #3b82f611)',
+        'card-glow-purple': 'linear-gradient(135deg, #4f46e522, #818cf811)',
+        'card-glow-emerald':'linear-gradient(135deg, #06422222, #10b98111)',
+        'card-glow-amber':  'linear-gradient(135deg, #78350f22, #f59e0b11)',
+        'card-glow-rose':   'linear-gradient(135deg, #88172222, #f4364611)',
+      },
+      boxShadow: {
+        'card':     '0 1px 3px rgba(0,0,0,0.5), 0 1px 2px rgba(0,0,0,0.4)',
+        'card-hover':'0 8px 30px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.4)',
+        'modal':    '0 25px 60px rgba(0,0,0,0.8)',
+        'glow-blue':'0 0 20px rgba(99,102,241,0.25)',
+        'glow-sm':  '0 0 10px rgba(99,102,241,0.15)',
+      },
+      animation: {
+        'fade-in':  'fadeIn 0.2s ease-out',
+        'slide-up': 'slideUp 0.25s ease-out',
+      },
+      keyframes: {
+        fadeIn:  { from: { opacity: 0 }, to: { opacity: 1 } },
+        slideUp: { from: { opacity: 0, transform: 'translateY(8px)' }, to: { opacity: 1, transform: 'translateY(0)' } },
+      },
     },
   },
   plugins: [],

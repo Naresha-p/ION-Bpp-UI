@@ -60,6 +60,7 @@ function validate(form) {
   if (!form.shortDesc.trim())        errs.shortDesc        = 'Short description is required'
   if (!form.unitPrice)               errs.unitPrice        = 'Unit price is required'
   else if (parseFloat(form.unitPrice) < 0) errs.unitPrice  = 'Unit price must be ≥ 0'
+  if (!form.imageUri.trim())         errs.imageUri         = 'Image URL is required'
   if (!form.brand.trim())            errs.brand            = 'Brand is required'
   if (!form.originCountry.trim())    errs.originCountry    = 'Origin country is required'
   if (!form.weightQty)               errs.weightQty        = 'Weight quantity is required'
@@ -73,8 +74,8 @@ function validate(form) {
 
 function Label({ children, required }) {
   return (
-    <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
-      {children}{required && <span className="text-red-500 ml-0.5">*</span>}
+    <label className="block text-xs font-semibold uppercase mb-1" style={{ color: 'var(--text-3)' }}>
+      {children}{required && <span className="ml-0.5" style={{ color: '#f87171' }}>*</span>}
     </label>
   )
 }
@@ -87,7 +88,7 @@ function FieldError({ msg }) {
 function SectionHeader({ title, open, onToggle }) {
   return (
     <button type="button" onClick={onToggle}
-      className="w-full flex items-center justify-between py-2 text-xs font-bold text-gray-600 uppercase tracking-wide border-b border-gray-100 mb-3">
+      className="section-toggle">
       {title}
       {open ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
     </button>
@@ -132,7 +133,7 @@ function AddProductModal({ onClose, onAdded }) {
     if (Object.keys(errs).length) {
       setErrors(errs)
       // open the section that has errors
-      const coreFields = ['offerId','providerId','name','shortDesc','unitPrice','brand','originCountry','weightQty','cuisine','prepInstructions']
+      const coreFields = ['offerId','providerId','name','shortDesc','imageUri','unitPrice','brand','originCountry','weightQty','cuisine','prepInstructions']
       if (coreFields.some((k) => errs[k])) setSections((s) => ({ ...s, core: true }))
       return
     }
@@ -145,7 +146,7 @@ function AddProductModal({ onClose, onAdded }) {
         providerId:  form.providerId.trim(),
         name:        form.name.trim(),
         shortDesc:   form.shortDesc.trim(),
-        ...(form.imageUri && { imageUri: form.imageUri.trim() }),
+        imageUri:    form.imageUri.trim(),
         unitPrice:   parseFloat(form.unitPrice),
         currency:    form.currency,
         unitCode:    form.unitCode,
@@ -221,20 +222,20 @@ function AddProductModal({ onClose, onAdded }) {
   const hasErrors = Object.keys(errors).length > 0
 
   return (
-    <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[92vh] flex flex-col">
+    <div className="modal-backdrop">
+      <div className="modal-panel w-full max-w-2xl max-h-[92vh] flex flex-col">
 
         {/* Header */}
-        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between flex-shrink-0">
+        <div className="px-6 py-4 flex items-center justify-between flex-shrink-0" style={{ borderBottom: '1px solid var(--border)' }}>
           <div>
-            <h2 className="font-semibold text-gray-800">Add New Product</h2>
+            <h2 className="font-semibold" style={{ color: 'var(--text-1)' }}>Add New Product</h2>
             {hasErrors && (
               <p className="text-xs text-red-600 mt-0.5 flex items-center gap-1">
                 <AlertCircle size={11} /> Fix {Object.keys(errors).length} error{Object.keys(errors).length !== 1 ? 's' : ''} before submitting
               </p>
             )}
           </div>
-          <button onClick={onClose} disabled={loading} className="text-gray-400 hover:text-gray-600">
+          <button onClick={onClose} disabled={loading} className="beckn-btn-ghost p-1.5">
             <X size={18} />
           </button>
         </div>
@@ -242,13 +243,7 @@ function AddProductModal({ onClose, onAdded }) {
         {/* Scrollable form body */}
         <div className="overflow-y-auto flex-1 px-6 py-5 space-y-5">
           {apiError && (
-            <div className="flex items-start gap-2 bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-700">
-              <AlertCircle size={15} className="mt-0.5 flex-shrink-0" />
-              <div>
-                <p className="font-semibold">Request failed</p>
-                <p className="text-xs mt-0.5">{apiError.message || String(apiError)}</p>
-              </div>
-            </div>
+            <ErrorBanner error={apiError} onDismiss={() => setApiError(null)} />
           )}
 
           {/* ── Core Info ── */}
@@ -258,8 +253,8 @@ function AddProductModal({ onClose, onAdded }) {
               <div className="space-y-3">
 
                 <div>
-                  <Label>Resource ID <span className="normal-case text-gray-400 font-normal">(auto-generated)</span></Label>
-                  <div className="beckn-input bg-gray-50 text-gray-500 font-mono text-xs select-all cursor-default truncate">
+                  <Label>Resource ID <span className="normal-case font-normal" style={{ color: 'var(--text-3)' }}>(auto-generated)</span></Label>
+                  <div className="beckn-input font-mono text-xs select-all cursor-default truncate" style={{ background: 'var(--surface-r)', color: 'var(--text-3)' }}>
                     {form.resourceId}
                   </div>
                 </div>
@@ -305,9 +300,11 @@ function AddProductModal({ onClose, onAdded }) {
                 </div>
 
                 <div>
-                  <Label>Image URL</Label>
-                  <input type="url" className="beckn-input" placeholder="https://…/image.jpg"
+                  <Label required>Image URL</Label>
+                  <input type="url" className={`beckn-input ${errors.imageUri ? 'border-red-400' : ''}`}
+                    placeholder="https://…/image.jpg"
                     value={form.imageUri} onChange={(e) => set('imageUri', e.target.value)} />
+                  <FieldError msg={errors.imageUri} />
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
@@ -386,11 +383,7 @@ function AddProductModal({ onClose, onAdded }) {
                   <div className="flex flex-wrap gap-1.5 mt-1">
                     {ALLERGENS.map((a) => (
                       <button key={a} type="button" onClick={() => toggleAllergen(a)}
-                        className={`text-xs px-2.5 py-1 rounded-full border font-medium transition-colors ${
-                          form.allergens.includes(a)
-                            ? 'bg-red-600 text-white border-red-600'
-                            : 'bg-white text-gray-500 border-gray-200 hover:border-red-300'
-                        }`}>
+                        className={form.allergens.includes(a) ? 'tag-pill active-red' : 'tag-pill'}>
                         {a}
                       </button>
                     ))}
@@ -419,13 +412,13 @@ function AddProductModal({ onClose, onAdded }) {
                 </div>
 
                 <div className="flex gap-4">
-                  <label className="flex items-center gap-2 cursor-pointer text-sm text-gray-700">
+                  <label className="flex items-center gap-2 cursor-pointer text-sm" style={{ color: 'var(--text-2)' }}>
                     <input type="checkbox" checked={form.isActive}
                       onChange={(e) => set('isActive', e.target.checked)}
                       className="w-4 h-4 accent-blue-600" />
                     Active
                   </label>
-                  <label className="flex items-center gap-2 cursor-pointer text-sm text-gray-700">
+                  <label className="flex items-center gap-2 cursor-pointer text-sm" style={{ color: 'var(--text-2)' }}>
                     <input type="checkbox" checked={form.isPublished}
                       onChange={(e) => set('isPublished', e.target.checked)}
                       className="w-4 h-4 accent-blue-600" />
@@ -444,8 +437,8 @@ function AddProductModal({ onClose, onAdded }) {
               <div className="space-y-4">
 
                 {/* Returns */}
-                <div className="border border-gray-100 rounded-xl p-3 space-y-2">
-                  <label className="flex items-center gap-2 cursor-pointer text-sm font-semibold text-gray-700">
+                <div className="rounded-xl p-3 space-y-2" style={{ border: '1px solid var(--border)', background: 'var(--surface-r)' }}>
+                  <label className="flex items-center gap-2 cursor-pointer text-sm font-semibold" style={{ color: 'var(--text-2)' }}>
                     <input type="checkbox" checked={form.returnsAllowed}
                       onChange={(e) => set('returnsAllowed', e.target.checked)}
                       className="w-4 h-4 accent-blue-600" />
@@ -471,8 +464,8 @@ function AddProductModal({ onClose, onAdded }) {
                 </div>
 
                 {/* Cancellation */}
-                <div className="border border-gray-100 rounded-xl p-3 space-y-2">
-                  <label className="flex items-center gap-2 cursor-pointer text-sm font-semibold text-gray-700">
+                <div className="rounded-xl p-3 space-y-2" style={{ border: '1px solid var(--border)', background: 'var(--surface-r)' }}>
+                  <label className="flex items-center gap-2 cursor-pointer text-sm font-semibold" style={{ color: 'var(--text-2)' }}>
                     <input type="checkbox" checked={form.cancellationAllowed}
                       onChange={(e) => set('cancellationAllowed', e.target.checked)}
                       className="w-4 h-4 accent-blue-600" />
@@ -498,8 +491,8 @@ function AddProductModal({ onClose, onAdded }) {
                 </div>
 
                 {/* Replacement */}
-                <div className="border border-gray-100 rounded-xl p-3 space-y-2">
-                  <label className="flex items-center gap-2 cursor-pointer text-sm font-semibold text-gray-700">
+                <div className="rounded-xl p-3 space-y-2" style={{ border: '1px solid var(--border)', background: 'var(--surface-r)' }}>
+                  <label className="flex items-center gap-2 cursor-pointer text-sm font-semibold" style={{ color: 'var(--text-2)' }}>
                     <input type="checkbox" checked={form.replacementAllowed}
                       onChange={(e) => set('replacementAllowed', e.target.checked)}
                       className="w-4 h-4 accent-blue-600" />
@@ -530,18 +523,14 @@ function AddProductModal({ onClose, onAdded }) {
                   <div className="flex flex-wrap gap-1.5 mt-1">
                     {PAYMENT_METHODS.map((m) => (
                       <button key={m} type="button" onClick={() => togglePayment(m)}
-                        className={`text-xs px-2.5 py-1 rounded-full border font-medium transition-colors ${
-                          form.paymentMethods.includes(m)
-                            ? 'bg-blue-600 text-white border-blue-600'
-                            : 'bg-white text-gray-500 border-gray-200 hover:border-blue-300'
-                        }`}>
+                        className={form.paymentMethods.includes(m) ? 'tag-pill active' : 'tag-pill'}>
                         {m}
                       </button>
                     ))}
                   </div>
                 </div>
 
-                <label className="flex items-center gap-2 cursor-pointer text-sm text-gray-700">
+                <label className="flex items-center gap-2 cursor-pointer text-sm" style={{ color: 'var(--text-2)' }}>
                   <input type="checkbox" checked={form.codAvailable}
                     onChange={(e) => set('codAvailable', e.target.checked)}
                     className="w-4 h-4 accent-blue-600" />
@@ -577,11 +566,7 @@ function AddProductModal({ onClose, onAdded }) {
                   <div className="flex gap-1.5 mt-1 flex-wrap">
                     {DAYS.map((d) => (
                       <button key={d} type="button" onClick={() => toggleDay(d)}
-                        className={`text-xs px-2.5 py-1 rounded-full border font-medium transition-colors ${
-                          form.timingDays.includes(d)
-                            ? 'bg-gray-800 text-white border-gray-800'
-                            : 'bg-white text-gray-500 border-gray-200 hover:border-gray-400'
-                        }`}>
+                        className={form.timingDays.includes(d) ? 'tag-pill active-dark' : 'tag-pill'}>
                         {d}
                       </button>
                     ))}
@@ -615,7 +600,7 @@ function AddProductModal({ onClose, onAdded }) {
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-gray-100 flex gap-3 flex-shrink-0">
+        <div className="px-6 py-4 flex gap-3 flex-shrink-0" style={{ borderTop: '1px solid var(--border)' }}>
           <button type="button" onClick={onClose} disabled={loading} className="beckn-btn-secondary flex-1">
             Cancel
           </button>
@@ -645,9 +630,9 @@ function ProductCard({ item, isSelected, isPublished, onToggle }) {
   return (
     <div
       onClick={() => onToggle(resourceId)}
-      className={`beckn-card cursor-pointer hover:shadow-md transition-all relative select-none
-        ${isSelected ? 'ring-2 ring-blue-500 shadow-md' : ''}
-        ${isPublished ? 'border-emerald-200' : ''}`}>
+      className={`beckn-card cursor-pointer hover:shadow-card-hover transition-all relative select-none
+        ${isSelected ? 'ring-2 ring-indigo-500 shadow-glow-blue' : ''}
+        ${isPublished ? 'ring-1 ring-emerald-500/40' : ''}`}>
 
       {/* Checkbox */}
       <div className="absolute top-2 left-2 z-10">
@@ -668,12 +653,12 @@ function ProductCard({ item, isSelected, isPublished, onToggle }) {
       )}
 
       {/* Image */}
-      <div className="h-32 bg-gradient-to-br from-gray-100 to-gray-200 rounded-t-xl overflow-hidden">
+      <div className="h-32 rounded-t-xl overflow-hidden" style={{ background: 'var(--surface-r)' }}>
         {imageUri ? (
           <img src={imageUri} alt={name} className="w-full h-full object-cover" />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
-            <Package size={36} className="text-gray-300" />
+            <Package size={36} style={{ color: 'var(--text-3)', opacity: 0.4 }} />
           </div>
         )}
       </div>
@@ -682,16 +667,16 @@ function ProductCard({ item, isSelected, isPublished, onToggle }) {
       <div className="p-3 space-y-1.5">
         {foodClass && (
           <span className={`text-[10px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full
-            ${foodClass === 'VEG'     ? 'bg-green-50 text-green-700'
-            : foodClass === 'EGG'    ? 'bg-yellow-50 text-yellow-700'
-            : 'bg-red-50 text-red-700'}`}>
+            ${foodClass === 'VEG'  ? 'bg-green-500/15 text-green-400'
+            : foodClass === 'EGG' ? 'bg-yellow-500/15 text-yellow-400'
+            : 'bg-red-500/15 text-red-400'}`}>
             {foodClass}
           </span>
         )}
-        <h3 className="font-semibold text-gray-800 text-sm leading-tight line-clamp-1">{name}</h3>
-        {shortDesc && <p className="text-xs text-gray-500 line-clamp-1">{shortDesc}</p>}
-        <p className="font-bold text-gray-900 text-sm">{formatPrice(price, currency)}</p>
-        <p className="text-[10px] font-mono text-gray-400 truncate">{resourceId}</p>
+        <h3 className="font-semibold text-sm leading-tight line-clamp-1" style={{ color: 'var(--text-1)' }}>{name}</h3>
+        {shortDesc && <p className="text-xs line-clamp-1" style={{ color: 'var(--text-3)' }}>{shortDesc}</p>}
+        <p className="font-bold text-sm" style={{ color: 'var(--text-1)' }}>{formatPrice(price, currency)}</p>
+        <p className="text-[10px] font-mono truncate" style={{ color: 'var(--text-3)' }}>{resourceId}</p>
       </div>
     </div>
   )
@@ -701,33 +686,33 @@ function ProductCard({ item, isSelected, isPublished, onToggle }) {
 
 function ConfirmPublishModal({ items, onConfirm, onClose, loading }) {
   return (
-    <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md">
-        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+    <div className="modal-backdrop">
+      <div className="modal-panel w-full max-w-md">
+        <div className="px-6 py-4 flex items-center justify-between" style={{ borderBottom: '1px solid var(--border)' }}>
           <div className="flex items-center gap-2">
             <Globe size={18} className="text-blue-600" />
-            <h2 className="font-semibold text-gray-800">Publish to Beckn Network</h2>
+            <h2 className="font-semibold" style={{ color: 'var(--text-1)' }}>Publish to Beckn Network</h2>
           </div>
-          <button onClick={onClose} disabled={loading} className="text-gray-400 hover:text-gray-600">
+          <button onClick={onClose} disabled={loading} className="beckn-btn-ghost p-1.5">
             <X size={18} />
           </button>
         </div>
         <div className="p-6 space-y-4">
-          <p className="text-sm text-gray-600">
-            Publishing <span className="font-semibold text-gray-900">{items.length} item{items.length !== 1 ? 's' : ''}</span> to
+          <p className="text-sm" style={{ color: 'var(--text-2)' }}>
+            Publishing <span className="font-semibold" style={{ color: 'var(--text-1)' }}>{items.length} item{items.length !== 1 ? 's' : ''}</span> to
             the Beckn open network.
           </p>
-          <div className="bg-blue-50 rounded-xl p-3 space-y-1.5 max-h-48 overflow-y-auto">
+          <div className="rounded-xl p-3 space-y-1.5 max-h-48 overflow-y-auto" style={{ background: 'var(--surface-r)', border: '1px solid var(--border)' }}>
             {items.map((id) => (
               <div key={id} className="flex items-center gap-2 text-sm">
-                <div className="w-1.5 h-1.5 bg-blue-400 rounded-full flex-shrink-0" />
-                <span className="text-gray-700 font-mono text-xs truncate">{id}</span>
+                <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: '#a5b4fc' }} />
+                <span className="font-mono text-xs truncate" style={{ color: 'var(--text-2)' }}>{id}</span>
               </div>
             ))}
           </div>
-          <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex items-start gap-2">
-            <AlertCircle size={15} className="text-amber-600 mt-0.5 flex-shrink-0" />
-            <p className="text-xs text-amber-700">
+          <div className="rounded-xl p-3 flex items-start gap-2" style={{ background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.2)' }}>
+            <AlertCircle size={15} className="mt-0.5 flex-shrink-0" style={{ color: '#fbbf24' }} />
+            <p className="text-xs" style={{ color: '#fcd34d' }}>
               Published items become live immediately and can be ordered by network participants.
             </p>
           </div>
@@ -751,10 +736,11 @@ function ToastMsg({ toast }) {
   if (!toast) return null
   const ok = toast.type === 'success'
   return (
-    <div className={`fixed bottom-6 right-6 z-[60] flex items-center gap-3 px-4 py-3 rounded-xl shadow-lg text-sm font-medium
-      ${ok ? 'bg-emerald-600 text-white' : 'bg-red-600 text-white'}`}>
-      {ok ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}
-      {toast.message}
+    <div className={ok ? 'toast-success' : 'toast-error'}>
+      {ok
+        ? <CheckCircle2 size={15} style={{ color: '#86efac', flexShrink: 0 }} />
+        : <AlertCircle  size={15} style={{ color: '#fda4af', flexShrink: 0 }} />}
+      <span>{toast.message}</span>
     </div>
   )
 }
@@ -861,20 +847,21 @@ export default function PublishPage() {
   // ─────────────────────────────────────────────────────────────────────────
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-5 animate-fade-in">
 
       {/* ── Header ── */}
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-xl font-bold text-gray-900">Publish Catalog</h1>
-          <p className="text-sm text-gray-500 mt-0.5">
+          <h1 className="text-xl font-bold tracking-tight" style={{ color: 'var(--text-1)' }}>Publish Catalog</h1>
+          <p className="text-sm mt-0.5" style={{ color: 'var(--text-3)' }}>
             Add products and publish them to the Beckn network
           </p>
         </div>
         <div className="flex items-center gap-2">
           <button onClick={fetchProducts} disabled={loading} title="Refresh"
-            className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
-            <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
+            className="beckn-btn-secondary text-xs py-1.5 px-3">
+            <RefreshCw size={13} className={loading ? 'animate-spin' : ''} />
+            Refresh
           </button>
           <button onClick={() => setShowAdd(true)} className="beckn-btn-secondary text-sm">
             <Plus size={15} /> Add Product
@@ -897,30 +884,24 @@ export default function PublishPage() {
       {/* ── Stats ── */}
       <div className="grid grid-cols-3 gap-3">
         {[
-          { label: 'Total Products', value: products.length,                                       color: 'text-gray-700',    bg: 'bg-gray-50'    },
-          { label: 'Published',      value: publishedIds.size,                                     color: 'text-emerald-700', bg: 'bg-emerald-50' },
-          { label: 'Selected',       value: selected.size,                                         color: 'text-blue-700',    bg: 'bg-blue-50'    },
-        ].map(({ label, value, color, bg }) => (
-          <div key={label} className={`rounded-xl p-3 ${bg}`}>
-            <p className="text-xs text-gray-500 font-medium">{label}</p>
-            <p className={`text-xl font-bold ${color}`}>{value}</p>
+          { label: 'Total Products', value: products.length,  accent: 'rgba(99,102,241,0.1)',   border: 'rgba(99,102,241,0.2)',  text: '#a5b4fc' },
+          { label: 'Published',      value: publishedIds.size, accent: 'rgba(34,197,94,0.1)',   border: 'rgba(34,197,94,0.2)',   text: '#86efac' },
+          { label: 'Selected',       value: selected.size,     accent: 'rgba(249,115,22,0.1)',  border: 'rgba(249,115,22,0.2)',  text: '#fdba74' },
+        ].map(({ label, value, accent, border, text }) => (
+          <div key={label} className="beckn-card p-3" style={{ background: accent, borderColor: border }}>
+            <p className="text-xs font-medium" style={{ color: 'var(--text-3)' }}>{label}</p>
+            <p className="text-xl font-bold mt-0.5" style={{ color: text }}>{value}</p>
           </div>
         ))}
       </div>
 
       {/* ── Fetch error ── */}
-      {fetchError && (
-        <div className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-700">
-          <AlertCircle size={15} className="flex-shrink-0" />
-          <span>{fetchError.message || 'Failed to load products.'}</span>
-          <button onClick={fetchProducts} className="ml-auto text-xs underline font-medium">Retry</button>
-        </div>
-      )}
+      {fetchError && <ErrorBanner error={fetchError} onRetry={fetchProducts} onDismiss={() => setFetchError(null)} />}
 
       {/* ── Search & bulk controls ── */}
       <div className="flex flex-wrap items-center gap-3">
         <div className="relative flex-1 min-w-[200px]">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-3)' }} />
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
@@ -929,17 +910,17 @@ export default function PublishPage() {
           />
         </div>
         {filtered.length > 0 && (
-          <div className="flex items-center gap-3 text-xs text-gray-500">
-            <button onClick={selectAll} className="hover:text-blue-600 font-medium transition-colors">
+          <div className="flex items-center gap-3 text-xs" style={{ color: 'var(--text-3)' }}>
+            <button onClick={selectAll} className="font-medium transition-colors hover:opacity-80" style={{ color: '#a5b4fc' }}>
               Select All ({filtered.length})
             </button>
             {selected.size > 0 && (
               <>
                 <span>·</span>
-                <button onClick={clearSelect} className="hover:text-red-500 font-medium transition-colors">
+                <button onClick={clearSelect} className="font-medium transition-colors hover:opacity-80" style={{ color: '#f87171' }}>
                   Clear
                 </button>
-                <span className="text-blue-600 font-semibold">{selected.size} selected</span>
+                <span className="font-semibold" style={{ color: '#a5b4fc' }}>{selected.size} selected</span>
               </>
             )}
           </div>
@@ -950,25 +931,31 @@ export default function PublishPage() {
       {loading && products.length === 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {Array.from({ length: 8 }).map((_, i) => (
-            <div key={i} className="beckn-card animate-pulse">
-              <div className="h-32 bg-gray-100 rounded-t-xl" />
+            <div key={i} className="beckn-card overflow-hidden">
+              <div className="h-32 skeleton rounded-t-xl rounded-b-none" />
               <div className="p-3 space-y-2">
-                <div className="h-3 bg-gray-100 rounded w-16" />
-                <div className="h-4 bg-gray-100 rounded w-3/4" />
-                <div className="h-3 bg-gray-100 rounded w-full" />
-                <div className="h-4 bg-gray-100 rounded w-1/3" />
+                <div className="h-3 skeleton rounded w-16" />
+                <div className="h-4 skeleton rounded w-3/4" />
+                <div className="h-3 skeleton rounded w-full" />
+                <div className="h-4 skeleton rounded w-1/3" />
               </div>
             </div>
           ))}
         </div>
       ) : filtered.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20 text-gray-400">
-          <Package size={44} className="mb-3 opacity-40" />
-          <p className="font-medium text-gray-500">
+        <div className="flex flex-col items-center justify-center py-20">
+          <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-4"
+            style={{ background: 'var(--surface-r)', border: '1px solid var(--border)' }}>
+            <Package size={28} style={{ color: 'var(--text-3)' }} />
+          </div>
+          <p className="font-medium" style={{ color: 'var(--text-2)' }}>
             {query ? 'No products match your search' : 'No products yet'}
           </p>
+          <p className="text-xs mt-1" style={{ color: 'var(--text-3)' }}>
+            {query ? 'Try a different search term' : 'Add your first product to get started'}
+          </p>
           {!query && (
-            <button onClick={() => setShowAdd(true)} className="mt-4 beckn-btn-primary text-sm">
+            <button onClick={() => setShowAdd(true)} className="mt-5 beckn-btn-primary text-sm">
               <Plus size={14} /> Add Your First Product
             </button>
           )}
