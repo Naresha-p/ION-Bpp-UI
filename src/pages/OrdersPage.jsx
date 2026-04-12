@@ -569,7 +569,8 @@ export default function OrdersPage() {
                     const contract      = getContract(order)
                     const itemNames     = getItemNames(order)
                     const totalAmt      = getTotalAmount(order)
-                    const curr          = getCurrency(order)
+                    // const curr          = getCurrency(order)
+                    const curr          = 'RP'
                     const perfStatus    = getPerfStatus(order)
                     const payMethod     = contract.consideration?.[0]
                       ?.considerationAttributes?.paymentMethods?.[0] || '—'

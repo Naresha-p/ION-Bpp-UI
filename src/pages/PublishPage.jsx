@@ -1,226 +1,697 @@
 /**
- * PublishPage — Seller-side catalog publish management
- * Allows sellers to publish / unpublish items to the Beckn network (BPP)
+ * PublishPage — Add products and publish them to the Beckn network
+ *
+ * Add Product  → POST /resources/add
+ * Publish      → POST /publish  { resourceIds: [...] }
  */
 
-import React, { useState, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, useMemo } from 'react'
+import { v4 as uuidv4 } from 'uuid'
 import {
-  Upload, Package, CheckCircle2, XCircle, Search, Filter,
-  Plus, Trash2, Edit2, Globe, EyeOff, RefreshCw, AlertCircle,
-  ChevronDown, X, Save, Layers,
+  Plus, Upload, Package, Globe, RefreshCw, Search,
+  CheckCircle2, AlertCircle, X, ChevronDown, ChevronUp,
 } from 'lucide-react'
-import useBecknStore from '../store/becknStore'
-import BecknBadge from '../components/common/BecknBadge'
-import StarRating from '../components/common/StarRating'
-import {
-  publishItems,
-  unpublishCatalogItems,
-  updateCatalogItem,
-} from '../api/bppApi'
+import { addProduct, publishItems, getProducts } from '../api/bppApi'
+import { Toast, ErrorBanner } from '../components/common/ErrorDisplay'
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
+// ─── Constants ────────────────────────────────────────────────────────────────
 
-const formatIDR = (n) =>
-  new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n)
+const UNIT_CODES      = ['EA', 'KG', 'G', 'L', 'ML', 'PACK']
+const WEIGHT_UNITS    = ['GRAM', 'KG', 'ML', 'L']
+const FOOD_CLASS      = ['VEG', 'NON_VEG', 'EGG']
+const ALLERGENS       = ['GLUTEN', 'DAIRY', 'EGGS', 'NUTS', 'PEANUTS', 'SOY', 'FISH', 'SHELLFISH', 'SESAME']
+const PAYMENT_METHODS = ['COD', 'UPI', 'PREPAID', 'CARD']
+const CUTOFF_EVENTS   = ['BEFORE_PACKING', 'BEFORE_DISPATCH']
+const RETURN_METHODS  = ['SELLER_PICKUP', 'BUYER_DROP']
+const DAYS            = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN']
 
-const CATEGORY_COLORS = {
-  staple:    'blue',
-  cooking:   'orange',
-  baking:    'yellow',
-  condiment: 'teal',
-  household: 'purple',
-  snacks:    'green',
+const EMPTY_FORM = {
+  // Required top-level (resourceId is auto-generated per modal open)
+  offerId: '', providerId: 'provider-test-001',
+  name: '', shortDesc: '', imageUri: '',
+  unitPrice: '', currency: 'INR', unitCode: 'EA',
+  isActive: true, isPublished: false,
+  // resourceAttributes — all required
+  brand: '', originCountry: 'IN',
+  weightQty: '', weightUnit: 'GRAM',
+  foodClassification: 'VEG',
+  allergens: [],
+  cuisine: '',
+  prepInstructions: '', prepStorage: '', prepShelfLife: '',
+  // offerAttributes.policies
+  returnsAllowed: false, returnsWindow: '', returnsMethod: 'SELLER_PICKUP',
+  cancellationAllowed: true, cancellationWindow: 'PT30M', cancellationCutoff: 'BEFORE_PACKING',
+  replacementAllowed: false, replacementWindow: '', replacementMethod: 'SELLER_PICKUP',
+  // paymentConstraints
+  codAvailable: true, paymentMethods: ['COD', 'UPI'],
+  // serviceability
+  maxDistance: '8', distanceUnit: 'KM',
+  timingDays: [...DAYS], timingStart: '11:00', timingEnd: '22:00',
+  holidays: [],
 }
 
-const CATEGORIES = ['staple', 'cooking', 'baking', 'condiment', 'household', 'snacks']
+// ─── Validation ───────────────────────────────────────────────────────────────
 
-// ─── Edit Item Modal ──────────────────────────────────────────────────────────
+function validate(form) {
+  const errs = {}
+  if (!form.offerId.trim())          errs.offerId          = 'Offer ID is required'
+  if (!form.providerId.trim())       errs.providerId       = 'Provider ID is required'
+  if (!form.name.trim())             errs.name             = 'Product name is required'
+  if (!form.shortDesc.trim())        errs.shortDesc        = 'Short description is required'
+  if (!form.unitPrice)               errs.unitPrice        = 'Unit price is required'
+  else if (parseFloat(form.unitPrice) < 0) errs.unitPrice  = 'Unit price must be ≥ 0'
+  if (!form.brand.trim())            errs.brand            = 'Brand is required'
+  if (!form.originCountry.trim())    errs.originCountry    = 'Origin country is required'
+  if (!form.weightQty)               errs.weightQty        = 'Weight quantity is required'
+  else if (parseFloat(form.weightQty) <= 0) errs.weightQty = 'Weight must be > 0'
+  if (!form.cuisine.trim())          errs.cuisine          = 'Cuisine is required'
+  if (!form.prepInstructions.trim()) errs.prepInstructions = 'Preparation instructions are required'
+  return errs
+}
 
-function EditItemModal({ item, onClose, onSave }) {
-  const [form, setForm] = useState({
-    name:      item.descriptor.name,
-    short_desc: item.descriptor.short_desc || '',
-    price:     item.price.value,
-    max_price: item.price.maximum_value || '',
-    stock:     item.quantity?.available?.count || 0,
-    max_qty:   item.quantity?.maximum?.count   || 10,
-    category:  item.category_id,
-  })
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
-  const handleSubmit = (e) => {
-    e.preventDefault()
-    onSave({
-      ...item,
-      descriptor: {
-        ...item.descriptor,
-        name:       form.name,
-        short_desc: form.short_desc,
-      },
-      price: {
-        currency:      'IDR',
-        value:         form.price,
-        maximum_value: form.max_price || String(parseInt(form.price) * 1.1),
-      },
-      quantity: {
-        available: { count: parseInt(form.stock) },
-        maximum:   { count: parseInt(form.max_qty) },
-      },
-      category_id: form.category,
-    })
-    onClose()
+function Label({ children, required }) {
+  return (
+    <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
+      {children}{required && <span className="text-red-500 ml-0.5">*</span>}
+    </label>
+  )
+}
+
+function FieldError({ msg }) {
+  if (!msg) return null
+  return <p className="mt-1 text-xs text-red-600 flex items-center gap-1"><AlertCircle size={11} />{msg}</p>
+}
+
+function SectionHeader({ title, open, onToggle }) {
+  return (
+    <button type="button" onClick={onToggle}
+      className="w-full flex items-center justify-between py-2 text-xs font-bold text-gray-600 uppercase tracking-wide border-b border-gray-100 mb-3">
+      {title}
+      {open ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+    </button>
+  )
+}
+
+function formatPrice(price, currency) {
+  if (price == null) return '—'
+  if (currency === 'INR') return `₹${Number(price).toLocaleString('en-IN')}`
+  if (currency === 'IDR') return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(price)
+  return `${currency} ${price}`
+}
+
+// ─── Add Product Modal ────────────────────────────────────────────────────────
+
+function AddProductModal({ onClose, onAdded }) {
+  const autoResourceId = useMemo(() => `item-${uuidv4()}`, [])
+  const [form, setForm]       = useState({ ...EMPTY_FORM, resourceId: autoResourceId })
+  const [errors, setErrors]   = useState({})
+  const [apiError, setApiError] = useState(null)
+  const [loading, setLoading] = useState(false)
+  const [sections, setSections] = useState({ core: true, policies: false, serviceability: false })
+
+  const set = (key, val) => {
+    setForm((f) => ({ ...f, [key]: val }))
+    setErrors((e) => { const n = { ...e }; delete n[key]; return n })
   }
+
+  const toggleSection  = (k) => setSections((s) => ({ ...s, [k]: !s[k] }))
+  const toggleAllergen = (a) => set('allergens',
+    form.allergens.includes(a) ? form.allergens.filter((x) => x !== a) : [...form.allergens, a])
+  const toggleDay      = (d) => set('timingDays',
+    form.timingDays.includes(d) ? form.timingDays.filter((x) => x !== d) : [...form.timingDays, d])
+  const togglePayment  = (m) => set('paymentMethods',
+    form.paymentMethods.includes(m) ? form.paymentMethods.filter((x) => x !== m) : [...form.paymentMethods, m])
+
+  const handleSubmit = async (e) => {
+    e?.preventDefault()
+    setApiError(null)
+
+    const errs = validate(form)
+    if (Object.keys(errs).length) {
+      setErrors(errs)
+      // open the section that has errors
+      const coreFields = ['offerId','providerId','name','shortDesc','unitPrice','brand','originCountry','weightQty','cuisine','prepInstructions']
+      if (coreFields.some((k) => errs[k])) setSections((s) => ({ ...s, core: true }))
+      return
+    }
+
+    setLoading(true)
+    try {
+      const payload = {
+        resourceId:  form.resourceId.trim(),
+        offerId:     form.offerId.trim(),
+        providerId:  form.providerId.trim(),
+        name:        form.name.trim(),
+        shortDesc:   form.shortDesc.trim(),
+        ...(form.imageUri && { imageUri: form.imageUri.trim() }),
+        unitPrice:   parseFloat(form.unitPrice),
+        currency:    form.currency,
+        unitCode:    form.unitCode,
+        resourceAttributes: {
+          brand:              form.brand.trim(),
+          originCountry:      form.originCountry.trim(),
+          weight: {
+            unitQuantity: parseFloat(form.weightQty),
+            unitCode:     form.weightUnit,
+          },
+          foodClassification: form.foodClassification,
+          ...(form.allergens.length && { allergens: form.allergens }),
+          cuisine:     form.cuisine.trim(),
+          preparation: {
+            instructions: form.prepInstructions.trim(),
+            ...(form.prepStorage   && { storage:   form.prepStorage.trim() }),
+            ...(form.prepShelfLife && { shelfLife: form.prepShelfLife.trim() }),
+          },
+        },
+        offerAttributes: {
+          policies: {
+            returns: {
+              allowed: form.returnsAllowed,
+              ...(form.returnsAllowed && form.returnsWindow && { window: form.returnsWindow }),
+              ...(form.returnsAllowed && { method: form.returnsMethod }),
+            },
+            cancellation: {
+              allowed: form.cancellationAllowed,
+              ...(form.cancellationAllowed && form.cancellationWindow && { window: form.cancellationWindow }),
+              ...(form.cancellationAllowed && { cutoffEvent: form.cancellationCutoff }),
+            },
+            replacement: {
+              allowed: form.replacementAllowed,
+              ...(form.replacementAllowed && form.replacementWindow && { window: form.replacementWindow }),
+              ...(form.replacementAllowed && { method: form.replacementMethod }),
+            },
+          },
+          paymentConstraints: {
+            codAvailable:   form.codAvailable,
+            paymentMethods: form.paymentMethods,
+          },
+          serviceability: {
+            maxDistance: parseFloat(form.maxDistance) || 8,
+            unit:        form.distanceUnit,
+            timing: [{
+              daysOfWeek: form.timingDays,
+              timeRange:  { start: form.timingStart, end: form.timingEnd },
+            }],
+          },
+          ...(form.holidays.length && { holidays: form.holidays }),
+        },
+        isActive:    form.isActive,
+        isPublished: form.isPublished,
+      }
+
+      const result = await addProduct(payload)
+
+      // Check for NACK
+      if (result?.message?.ack?.status === 'NACK') {
+        setApiError({ message: result.error || 'Server returned NACK — please check your input.' })
+        return
+      }
+
+      onAdded(payload)
+      onClose()
+    } catch (err) {
+      setApiError(err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const hasErrors = Object.keys(errors).length > 0
 
   return (
     <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg">
-        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-          <h2 className="font-semibold text-gray-800">Edit Catalog Item</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[92vh] flex flex-col">
+
+        {/* Header */}
+        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between flex-shrink-0">
+          <div>
+            <h2 className="font-semibold text-gray-800">Add New Product</h2>
+            {hasErrors && (
+              <p className="text-xs text-red-600 mt-0.5 flex items-center gap-1">
+                <AlertCircle size={11} /> Fix {Object.keys(errors).length} error{Object.keys(errors).length !== 1 ? 's' : ''} before submitting
+              </p>
+            )}
+          </div>
+          <button onClick={onClose} disabled={loading} className="text-gray-400 hover:text-gray-600">
             <X size={18} />
           </button>
         </div>
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+
+        {/* Scrollable form body */}
+        <div className="overflow-y-auto flex-1 px-6 py-5 space-y-5">
+          {apiError && (
+            <div className="flex items-start gap-2 bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-700">
+              <AlertCircle size={15} className="mt-0.5 flex-shrink-0" />
+              <div>
+                <p className="font-semibold">Request failed</p>
+                <p className="text-xs mt-0.5">{apiError.message || String(apiError)}</p>
+              </div>
+            </div>
+          )}
+
+          {/* ── Core Info ── */}
           <div>
-            <label className="block text-xs font-semibold text-gray-500 mb-1 uppercase">Product Name</label>
-            <input required className="beckn-input" value={form.name}
-              onChange={(e) => setForm({ ...form, name: e.target.value })} />
+            <SectionHeader title="Core Info" open={sections.core} onToggle={() => toggleSection('core')} />
+            {sections.core && (
+              <div className="space-y-3">
+
+                <div>
+                  <Label>Resource ID <span className="normal-case text-gray-400 font-normal">(auto-generated)</span></Label>
+                  <div className="beckn-input bg-gray-50 text-gray-500 font-mono text-xs select-all cursor-default truncate">
+                    {form.resourceId}
+                  </div>
+                </div>
+
+                <div>
+                  <Label required>Offer ID</Label>
+                  <input className={`beckn-input ${errors.offerId ? 'border-red-400' : ''}`}
+                    placeholder="offer-butter-chicken-001"
+                    value={form.offerId} onChange={(e) => set('offerId', e.target.value)} />
+                  <FieldError msg={errors.offerId} />
+                </div>
+
+                <div>
+                  <Label required>Provider ID</Label>
+                  <input className={`beckn-input ${errors.providerId ? 'border-red-400' : ''}`}
+                    value={form.providerId} onChange={(e) => set('providerId', e.target.value)} />
+                  <FieldError msg={errors.providerId} />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label required>Product Name</Label>
+                    <input className={`beckn-input ${errors.name ? 'border-red-400' : ''}`}
+                      placeholder="Butter Chicken"
+                      value={form.name} onChange={(e) => set('name', e.target.value)} />
+                    <FieldError msg={errors.name} />
+                  </div>
+                  <div>
+                    <Label>Unit Code</Label>
+                    <select className="beckn-input" value={form.unitCode}
+                      onChange={(e) => set('unitCode', e.target.value)}>
+                      {UNIT_CODES.map((u) => <option key={u}>{u}</option>)}
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <Label required>Short Description</Label>
+                  <input className={`beckn-input ${errors.shortDesc ? 'border-red-400' : ''}`}
+                    placeholder="Tender chicken in a rich tomato-butter gravy"
+                    value={form.shortDesc} onChange={(e) => set('shortDesc', e.target.value)} />
+                  <FieldError msg={errors.shortDesc} />
+                </div>
+
+                <div>
+                  <Label>Image URL</Label>
+                  <input type="url" className="beckn-input" placeholder="https://…/image.jpg"
+                    value={form.imageUri} onChange={(e) => set('imageUri', e.target.value)} />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label required>Unit Price</Label>
+                    <input type="number" min="0" step="0.01"
+                      className={`beckn-input ${errors.unitPrice ? 'border-red-400' : ''}`}
+                      placeholder="280"
+                      value={form.unitPrice} onChange={(e) => set('unitPrice', e.target.value)} />
+                    <FieldError msg={errors.unitPrice} />
+                  </div>
+                  <div>
+                    <Label>Currency</Label>
+                    <select className="beckn-input" value={form.currency}
+                      onChange={(e) => set('currency', e.target.value)}>
+                      {['INR', 'IDR', 'USD'].map((c) => <option key={c}>{c}</option>)}
+                    </select>
+                  </div>
+                </div>
+
+                {/* resourceAttributes */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label required>Brand</Label>
+                    <input className={`beckn-input ${errors.brand ? 'border-red-400' : ''}`}
+                      placeholder="Spice Garden"
+                      value={form.brand} onChange={(e) => set('brand', e.target.value)} />
+                    <FieldError msg={errors.brand} />
+                  </div>
+                  <div>
+                    <Label required>Origin Country</Label>
+                    <input className={`beckn-input ${errors.originCountry ? 'border-red-400' : ''}`}
+                      placeholder="IN"
+                      value={form.originCountry} onChange={(e) => set('originCountry', e.target.value)} />
+                    <FieldError msg={errors.originCountry} />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label required>Cuisine</Label>
+                    <input className={`beckn-input ${errors.cuisine ? 'border-red-400' : ''}`}
+                      placeholder="North Indian"
+                      value={form.cuisine} onChange={(e) => set('cuisine', e.target.value)} />
+                    <FieldError msg={errors.cuisine} />
+                  </div>
+                  <div>
+                    <Label required>Food Classification</Label>
+                    <select className="beckn-input" value={form.foodClassification}
+                      onChange={(e) => set('foodClassification', e.target.value)}>
+                      {FOOD_CLASS.map((f) => <option key={f}>{f}</option>)}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="col-span-2">
+                    <Label required>Weight Quantity</Label>
+                    <input type="number" min="0" step="0.1"
+                      className={`beckn-input ${errors.weightQty ? 'border-red-400' : ''}`}
+                      placeholder="350"
+                      value={form.weightQty} onChange={(e) => set('weightQty', e.target.value)} />
+                    <FieldError msg={errors.weightQty} />
+                  </div>
+                  <div>
+                    <Label>Weight Unit</Label>
+                    <select className="beckn-input" value={form.weightUnit}
+                      onChange={(e) => set('weightUnit', e.target.value)}>
+                      {WEIGHT_UNITS.map((u) => <option key={u}>{u}</option>)}
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <Label>Allergens</Label>
+                  <div className="flex flex-wrap gap-1.5 mt-1">
+                    {ALLERGENS.map((a) => (
+                      <button key={a} type="button" onClick={() => toggleAllergen(a)}
+                        className={`text-xs px-2.5 py-1 rounded-full border font-medium transition-colors ${
+                          form.allergens.includes(a)
+                            ? 'bg-red-600 text-white border-red-600'
+                            : 'bg-white text-gray-500 border-gray-200 hover:border-red-300'
+                        }`}>
+                        {a}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-3 gap-3">
+                  <div>
+                    <Label required>Prep Instructions</Label>
+                    <input className={`beckn-input ${errors.prepInstructions ? 'border-red-400' : ''}`}
+                      placeholder="Heat and serve"
+                      value={form.prepInstructions}
+                      onChange={(e) => set('prepInstructions', e.target.value)} />
+                    <FieldError msg={errors.prepInstructions} />
+                  </div>
+                  <div>
+                    <Label>Storage</Label>
+                    <input className="beckn-input" placeholder="Refrigerate below 4°C"
+                      value={form.prepStorage} onChange={(e) => set('prepStorage', e.target.value)} />
+                  </div>
+                  <div>
+                    <Label>Shelf Life</Label>
+                    <input className="beckn-input" placeholder="PT4H"
+                      value={form.prepShelfLife} onChange={(e) => set('prepShelfLife', e.target.value)} />
+                  </div>
+                </div>
+
+                <div className="flex gap-4">
+                  <label className="flex items-center gap-2 cursor-pointer text-sm text-gray-700">
+                    <input type="checkbox" checked={form.isActive}
+                      onChange={(e) => set('isActive', e.target.checked)}
+                      className="w-4 h-4 accent-blue-600" />
+                    Active
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer text-sm text-gray-700">
+                    <input type="checkbox" checked={form.isPublished}
+                      onChange={(e) => set('isPublished', e.target.checked)}
+                      className="w-4 h-4 accent-blue-600" />
+                    Publish immediately
+                  </label>
+                </div>
+              </div>
+            )}
           </div>
+
+          {/* ── Policies & Payment ── */}
           <div>
-            <label className="block text-xs font-semibold text-gray-500 mb-1 uppercase">Short Description</label>
-            <input className="beckn-input" value={form.short_desc}
-              onChange={(e) => setForm({ ...form, short_desc: e.target.value })} />
+            <SectionHeader title="Policies & Payment" open={sections.policies}
+              onToggle={() => toggleSection('policies')} />
+            {sections.policies && (
+              <div className="space-y-4">
+
+                {/* Returns */}
+                <div className="border border-gray-100 rounded-xl p-3 space-y-2">
+                  <label className="flex items-center gap-2 cursor-pointer text-sm font-semibold text-gray-700">
+                    <input type="checkbox" checked={form.returnsAllowed}
+                      onChange={(e) => set('returnsAllowed', e.target.checked)}
+                      className="w-4 h-4 accent-blue-600" />
+                    Returns Allowed
+                  </label>
+                  {form.returnsAllowed && (
+                    <div className="grid grid-cols-2 gap-3 pt-1">
+                      <div>
+                        <Label>Return Window</Label>
+                        <input className="beckn-input" placeholder="P1D"
+                          value={form.returnsWindow}
+                          onChange={(e) => set('returnsWindow', e.target.value)} />
+                      </div>
+                      <div>
+                        <Label>Return Method</Label>
+                        <select className="beckn-input" value={form.returnsMethod}
+                          onChange={(e) => set('returnsMethod', e.target.value)}>
+                          {RETURN_METHODS.map((m) => <option key={m}>{m}</option>)}
+                        </select>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Cancellation */}
+                <div className="border border-gray-100 rounded-xl p-3 space-y-2">
+                  <label className="flex items-center gap-2 cursor-pointer text-sm font-semibold text-gray-700">
+                    <input type="checkbox" checked={form.cancellationAllowed}
+                      onChange={(e) => set('cancellationAllowed', e.target.checked)}
+                      className="w-4 h-4 accent-blue-600" />
+                    Cancellation Allowed
+                  </label>
+                  {form.cancellationAllowed && (
+                    <div className="grid grid-cols-2 gap-3 pt-1">
+                      <div>
+                        <Label>Cancellation Window</Label>
+                        <input className="beckn-input" placeholder="PT30M"
+                          value={form.cancellationWindow}
+                          onChange={(e) => set('cancellationWindow', e.target.value)} />
+                      </div>
+                      <div>
+                        <Label>Cutoff Event</Label>
+                        <select className="beckn-input" value={form.cancellationCutoff}
+                          onChange={(e) => set('cancellationCutoff', e.target.value)}>
+                          {CUTOFF_EVENTS.map((c) => <option key={c}>{c}</option>)}
+                        </select>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Replacement */}
+                <div className="border border-gray-100 rounded-xl p-3 space-y-2">
+                  <label className="flex items-center gap-2 cursor-pointer text-sm font-semibold text-gray-700">
+                    <input type="checkbox" checked={form.replacementAllowed}
+                      onChange={(e) => set('replacementAllowed', e.target.checked)}
+                      className="w-4 h-4 accent-blue-600" />
+                    Replacement Allowed
+                  </label>
+                  {form.replacementAllowed && (
+                    <div className="grid grid-cols-2 gap-3 pt-1">
+                      <div>
+                        <Label>Replacement Window</Label>
+                        <input className="beckn-input" placeholder="P7D"
+                          value={form.replacementWindow}
+                          onChange={(e) => set('replacementWindow', e.target.value)} />
+                      </div>
+                      <div>
+                        <Label>Method</Label>
+                        <select className="beckn-input" value={form.replacementMethod}
+                          onChange={(e) => set('replacementMethod', e.target.value)}>
+                          {RETURN_METHODS.map((m) => <option key={m}>{m}</option>)}
+                        </select>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Payment */}
+                <div>
+                  <Label>Payment Methods</Label>
+                  <div className="flex flex-wrap gap-1.5 mt-1">
+                    {PAYMENT_METHODS.map((m) => (
+                      <button key={m} type="button" onClick={() => togglePayment(m)}
+                        className={`text-xs px-2.5 py-1 rounded-full border font-medium transition-colors ${
+                          form.paymentMethods.includes(m)
+                            ? 'bg-blue-600 text-white border-blue-600'
+                            : 'bg-white text-gray-500 border-gray-200 hover:border-blue-300'
+                        }`}>
+                        {m}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <label className="flex items-center gap-2 cursor-pointer text-sm text-gray-700">
+                  <input type="checkbox" checked={form.codAvailable}
+                    onChange={(e) => set('codAvailable', e.target.checked)}
+                    className="w-4 h-4 accent-blue-600" />
+                  Cash on Delivery Available
+                </label>
+              </div>
+            )}
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-semibold text-gray-500 mb-1 uppercase">Price (IDR)</label>
-              <input required type="number" className="beckn-input" value={form.price}
-                onChange={(e) => setForm({ ...form, price: e.target.value })} />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-gray-500 mb-1 uppercase">Max Price (IDR)</label>
-              <input type="number" className="beckn-input" value={form.max_price}
-                onChange={(e) => setForm({ ...form, max_price: e.target.value })} />
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-semibold text-gray-500 mb-1 uppercase">Stock</label>
-              <input required type="number" className="beckn-input" value={form.stock}
-                onChange={(e) => setForm({ ...form, stock: e.target.value })} />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-gray-500 mb-1 uppercase">Max per Order</label>
-              <input type="number" className="beckn-input" value={form.max_qty}
-                onChange={(e) => setForm({ ...form, max_qty: e.target.value })} />
-            </div>
-          </div>
+
+          {/* ── Serviceability ── */}
           <div>
-            <label className="block text-xs font-semibold text-gray-500 mb-1 uppercase">Category</label>
-            <select className="beckn-input" value={form.category}
-              onChange={(e) => setForm({ ...form, category: e.target.value })}>
-              {CATEGORIES.map((c) => (
-                <option key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>
-              ))}
-            </select>
+            <SectionHeader title="Serviceability" open={sections.serviceability}
+              onToggle={() => toggleSection('serviceability')} />
+            {sections.serviceability && (
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label>Max Distance</Label>
+                    <input type="number" min="0" className="beckn-input" placeholder="8"
+                      value={form.maxDistance} onChange={(e) => set('maxDistance', e.target.value)} />
+                  </div>
+                  <div>
+                    <Label>Unit</Label>
+                    <select className="beckn-input" value={form.distanceUnit}
+                      onChange={(e) => set('distanceUnit', e.target.value)}>
+                      {['KM', 'MILE'].map((u) => <option key={u}>{u}</option>)}
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <Label>Service Days</Label>
+                  <div className="flex gap-1.5 mt-1 flex-wrap">
+                    {DAYS.map((d) => (
+                      <button key={d} type="button" onClick={() => toggleDay(d)}
+                        className={`text-xs px-2.5 py-1 rounded-full border font-medium transition-colors ${
+                          form.timingDays.includes(d)
+                            ? 'bg-gray-800 text-white border-gray-800'
+                            : 'bg-white text-gray-500 border-gray-200 hover:border-gray-400'
+                        }`}>
+                        {d}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label>Opens</Label>
+                    <input type="time" className="beckn-input" value={form.timingStart}
+                      onChange={(e) => set('timingStart', e.target.value)} />
+                  </div>
+                  <div>
+                    <Label>Closes</Label>
+                    <input type="time" className="beckn-input" value={form.timingEnd}
+                      onChange={(e) => set('timingEnd', e.target.value)} />
+                  </div>
+                </div>
+
+                <div>
+                  <Label>Holidays (ISO dates, comma-separated)</Label>
+                  <input className="beckn-input" placeholder="2026-01-26, 2026-08-17"
+                    value={form.holidays.join(', ')}
+                    onChange={(e) =>
+                      set('holidays', e.target.value.split(',').map((s) => s.trim()).filter(Boolean))
+                    } />
+                </div>
+              </div>
+            )}
           </div>
-          <div className="flex gap-3 pt-2">
-            <button type="button" onClick={onClose} className="beckn-btn-secondary flex-1">Cancel</button>
-            <button type="submit" className="beckn-btn-primary flex-1">
-              <Save size={14} /> Save Changes
-            </button>
-          </div>
-        </form>
+        </div>
+
+        {/* Footer */}
+        <div className="px-6 py-4 border-t border-gray-100 flex gap-3 flex-shrink-0">
+          <button type="button" onClick={onClose} disabled={loading} className="beckn-btn-secondary flex-1">
+            Cancel
+          </button>
+          <button type="button" onClick={handleSubmit} disabled={loading}
+            className="beckn-btn-primary flex-1 disabled:opacity-50 disabled:cursor-not-allowed">
+            {loading
+              ? <><div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Adding…</>
+              : <><Plus size={14} /> Add Product</>}
+          </button>
+        </div>
       </div>
     </div>
   )
 }
 
-// ─── Add Product Modal ────────────────────────────────────────────────────────
+// ─── Product Card ─────────────────────────────────────────────────────────────
 
-function AddProductModal({ onClose, onAdd }) {
-  const [form, setForm] = useState({
-    name: '', short_desc: '', price: '', max_price: '', stock: '', max_qty: '10', category: 'staple',
-  })
-
-  const handleSubmit = (e) => {
-    e.preventDefault()
-    onAdd({
-      id:          `ITEM${Date.now()}`,
-      provider_id: 'WBNDG123467',
-      descriptor:  { name: form.name, short_desc: form.short_desc, images: [] },
-      price:       {
-        currency:      'IDR',
-        value:         form.price,
-        maximum_value: form.max_price || String(parseInt(form.price) * 1.1),
-      },
-      quantity:    { available: { count: parseInt(form.stock) }, maximum: { count: parseInt(form.max_qty) } },
-      category_id: form.category,
-      rating:      '0',
-      tags:        [],
-    })
-    onClose()
-  }
+function ProductCard({ item, isSelected, isPublished, onToggle }) {
+  const name       = item.name        || item.descriptor?.name  || '—'
+  const price      = item.unitPrice   ?? item.price?.value
+  const currency   = item.currency    || item.price?.currency   || 'INR'
+  const imageUri   = item.imageUri    || item.descriptor?.images?.[0] || null
+  const resourceId = item.resourceId  || item._id               || item.id
+  const foodClass  = item.resourceAttributes?.foodClassification
+  const shortDesc  = item.shortDesc   || item.descriptor?.short_desc || ''
 
   return (
-    <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg">
-        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-          <h2 className="font-semibold text-gray-800">Add New Product</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
-            <X size={18} />
-          </button>
+    <div
+      onClick={() => onToggle(resourceId)}
+      className={`beckn-card cursor-pointer hover:shadow-md transition-all relative select-none
+        ${isSelected ? 'ring-2 ring-blue-500 shadow-md' : ''}
+        ${isPublished ? 'border-emerald-200' : ''}`}>
+
+      {/* Checkbox */}
+      <div className="absolute top-2 left-2 z-10">
+        <input
+          type="checkbox"
+          checked={isSelected}
+          onChange={() => onToggle(resourceId)}
+          onClick={(e) => e.stopPropagation()}
+          className="w-4 h-4 accent-blue-600 cursor-pointer rounded"
+        />
+      </div>
+
+      {/* Published badge */}
+      {isPublished && (
+        <div className="absolute top-2 right-2 z-10 flex items-center gap-1 bg-emerald-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
+          <Globe size={9} /> Live
         </div>
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          <div>
-            <label className="block text-xs font-semibold text-gray-500 mb-1 uppercase">Product Name</label>
-            <input required className="beckn-input" placeholder="e.g. Beras Premium 5kg"
-              value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+      )}
+
+      {/* Image */}
+      <div className="h-32 bg-gradient-to-br from-gray-100 to-gray-200 rounded-t-xl overflow-hidden">
+        {imageUri ? (
+          <img src={imageUri} alt={name} className="w-full h-full object-cover" />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center">
+            <Package size={36} className="text-gray-300" />
           </div>
-          <div>
-            <label className="block text-xs font-semibold text-gray-500 mb-1 uppercase">Short Description</label>
-            <input className="beckn-input" placeholder="Brief product description"
-              value={form.short_desc} onChange={(e) => setForm({ ...form, short_desc: e.target.value })} />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-semibold text-gray-500 mb-1 uppercase">Price (IDR)</label>
-              <input required type="number" className="beckn-input" placeholder="85000"
-                value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-gray-500 mb-1 uppercase">Max Price (IDR)</label>
-              <input type="number" className="beckn-input" placeholder="90000"
-                value={form.max_price} onChange={(e) => setForm({ ...form, max_price: e.target.value })} />
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-semibold text-gray-500 mb-1 uppercase">Stock</label>
-              <input required type="number" className="beckn-input" placeholder="100"
-                value={form.stock} onChange={(e) => setForm({ ...form, stock: e.target.value })} />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-gray-500 mb-1 uppercase">Max per Order</label>
-              <input type="number" className="beckn-input" placeholder="10"
-                value={form.max_qty} onChange={(e) => setForm({ ...form, max_qty: e.target.value })} />
-            </div>
-          </div>
-          <div>
-            <label className="block text-xs font-semibold text-gray-500 mb-1 uppercase">Category</label>
-            <select className="beckn-input" value={form.category}
-              onChange={(e) => setForm({ ...form, category: e.target.value })}>
-              {CATEGORIES.map((c) => (
-                <option key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>
-              ))}
-            </select>
-          </div>
-          <div className="flex gap-3 pt-2">
-            <button type="button" onClick={onClose} className="beckn-btn-secondary flex-1">Cancel</button>
-            <button type="submit" className="beckn-btn-primary flex-1">
-              <Plus size={14} /> Add Product
-            </button>
-          </div>
-        </form>
+        )}
+      </div>
+
+      {/* Content */}
+      <div className="p-3 space-y-1.5">
+        {foodClass && (
+          <span className={`text-[10px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full
+            ${foodClass === 'VEG'     ? 'bg-green-50 text-green-700'
+            : foodClass === 'EGG'    ? 'bg-yellow-50 text-yellow-700'
+            : 'bg-red-50 text-red-700'}`}>
+            {foodClass}
+          </span>
+        )}
+        <h3 className="font-semibold text-gray-800 text-sm leading-tight line-clamp-1">{name}</h3>
+        {shortDesc && <p className="text-xs text-gray-500 line-clamp-1">{shortDesc}</p>}
+        <p className="font-bold text-gray-900 text-sm">{formatPrice(price, currency)}</p>
+        <p className="text-[10px] font-mono text-gray-400 truncate">{resourceId}</p>
       </div>
     </div>
   )
@@ -243,14 +714,14 @@ function ConfirmPublishModal({ items, onConfirm, onClose, loading }) {
         </div>
         <div className="p-6 space-y-4">
           <p className="text-sm text-gray-600">
-            You are about to publish <span className="font-semibold text-gray-900">{items.length} item{items.length !== 1 ? 's' : ''}</span> to
-            the Beckn open network. These items will be discoverable by buyers via on_search responses.
+            Publishing <span className="font-semibold text-gray-900">{items.length} item{items.length !== 1 ? 's' : ''}</span> to
+            the Beckn open network.
           </p>
           <div className="bg-blue-50 rounded-xl p-3 space-y-1.5 max-h-48 overflow-y-auto">
-            {items.map((item) => (
-              <div key={item.id} className="flex items-center justify-between text-sm">
-                <span className="text-gray-700 font-medium truncate max-w-[60%]">{item.descriptor.name}</span>
-                <span className="text-blue-700 font-semibold">{formatIDR(item.price.value)}</span>
+            {items.map((id) => (
+              <div key={id} className="flex items-center gap-2 text-sm">
+                <div className="w-1.5 h-1.5 bg-blue-400 rounded-full flex-shrink-0" />
+                <span className="text-gray-700 font-mono text-xs truncate">{id}</span>
               </div>
             ))}
           </div>
@@ -258,19 +729,14 @@ function ConfirmPublishModal({ items, onConfirm, onClose, loading }) {
             <AlertCircle size={15} className="text-amber-600 mt-0.5 flex-shrink-0" />
             <p className="text-xs text-amber-700">
               Published items become live immediately and can be ordered by network participants.
-              Ensure prices and stock are accurate before publishing.
             </p>
           </div>
           <div className="flex gap-3">
-            <button type="button" onClick={onClose} disabled={loading} className="beckn-btn-secondary flex-1">
-              Cancel
-            </button>
+            <button onClick={onClose} disabled={loading} className="beckn-btn-secondary flex-1">Cancel</button>
             <button onClick={onConfirm} disabled={loading} className="beckn-btn-primary flex-1">
-              {loading ? (
-                <><RefreshCw size={14} className="animate-spin" /> Publishing…</>
-              ) : (
-                <><Upload size={14} /> Publish Now</>
-              )}
+              {loading
+                ? <><RefreshCw size={14} className="animate-spin" /> Publishing…</>
+                : <><Upload size={14} /> Publish Now</>}
             </button>
           </div>
         </div>
@@ -279,107 +745,16 @@ function ConfirmPublishModal({ items, onConfirm, onClose, loading }) {
   )
 }
 
-// ─── Toast Notification ───────────────────────────────────────────────────────
+// ─── Toast wrapper ────────────────────────────────────────────────────────────
 
-function Toast({ toast }) {
+function ToastMsg({ toast }) {
   if (!toast) return null
-  const isSuccess = toast.type === 'success'
+  const ok = toast.type === 'success'
   return (
     <div className={`fixed bottom-6 right-6 z-[60] flex items-center gap-3 px-4 py-3 rounded-xl shadow-lg text-sm font-medium
-      ${isSuccess ? 'bg-emerald-600 text-white' : 'bg-red-600 text-white'}`}>
-      {isSuccess
-        ? <CheckCircle2 size={16} />
-        : <AlertCircle size={16} />}
+      ${ok ? 'bg-emerald-600 text-white' : 'bg-red-600 text-white'}`}>
+      {ok ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}
       {toast.message}
-    </div>
-  )
-}
-
-// ─── Item Card ────────────────────────────────────────────────────────────────
-
-function ItemCard({ item, isSelected, isPublished, onToggleSelect, onEdit, onDelete, onUnpublish }) {
-  return (
-    <div className={`beckn-card hover:shadow-md transition-all group relative
-      ${isSelected ? 'ring-2 ring-blue-500 shadow-md' : ''}
-      ${isPublished ? 'border-emerald-200' : ''}`}>
-
-      {/* Checkbox */}
-      <div className="absolute top-2 left-2 z-10">
-        <input
-          type="checkbox"
-          checked={isSelected}
-          onChange={() => onToggleSelect(item.id)}
-          className="w-4 h-4 accent-blue-600 cursor-pointer rounded"
-        />
-      </div>
-
-      {/* Published badge */}
-      {isPublished && (
-        <div className="absolute top-2 right-2 z-10 flex items-center gap-1 bg-emerald-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
-          <Globe size={9} /> Live
-        </div>
-      )}
-
-      {/* Image */}
-      <div className="h-32 bg-gradient-to-br from-gray-100 to-gray-200 rounded-t-xl overflow-hidden">
-        {item.descriptor.images?.[0] ? (
-          <img src={item.descriptor.images[0]} alt={item.descriptor.name}
-            className="w-full h-full object-cover" />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center">
-            <Package size={36} className="text-gray-300" />
-          </div>
-        )}
-      </div>
-
-      {/* Content */}
-      <div className="p-3 space-y-2">
-        <BecknBadge label={item.category_id} color={CATEGORY_COLORS[item.category_id] || 'gray'} />
-        <h3 className="font-semibold text-gray-800 text-sm leading-tight line-clamp-1">
-          {item.descriptor.name}
-        </h3>
-        {item.descriptor.short_desc && (
-          <p className="text-xs text-gray-500 line-clamp-1">{item.descriptor.short_desc}</p>
-        )}
-        <div className="flex items-center justify-between">
-          <p className="font-bold text-gray-900 text-sm">{formatIDR(item.price?.value)}</p>
-          <div className="flex items-center gap-1">
-            <StarRating value={parseFloat(item.rating || 0)} size={10} />
-            <span className="text-xs text-gray-500">{item.rating || '—'}</span>
-          </div>
-        </div>
-        <div className="flex items-center justify-between text-xs text-gray-500">
-          <span>Stock: <span className={item.quantity?.available?.count < 10 ? 'text-red-500 font-semibold' : ''}>
-            {item.quantity?.available?.count}
-          </span></span>
-          <span className="font-mono text-[10px]">{item.id}</span>
-        </div>
-
-        {/* Actions */}
-        <div className="flex gap-1.5 pt-1">
-          <button
-            onClick={() => onEdit(item)}
-            className="flex-1 flex items-center justify-center gap-1 text-xs py-1.5 px-2
-              border border-gray-200 rounded-lg text-gray-600 hover:border-blue-300 hover:text-blue-600 transition-colors">
-            <Edit2 size={11} /> Edit
-          </button>
-          {isPublished ? (
-            <button
-              onClick={() => onUnpublish(item.id)}
-              className="flex-1 flex items-center justify-center gap-1 text-xs py-1.5 px-2
-                border border-emerald-200 rounded-lg text-emerald-700 hover:bg-red-50 hover:border-red-300 hover:text-red-600 transition-colors">
-              <EyeOff size={11} /> Unpublish
-            </button>
-          ) : (
-            <button
-              onClick={() => onDelete(item.id)}
-              className="flex-1 flex items-center justify-center gap-1 text-xs py-1.5 px-2
-                border border-gray-200 rounded-lg text-gray-600 hover:border-red-300 hover:text-red-600 transition-colors">
-              <Trash2 size={11} /> Delete
-            </button>
-          )}
-        </div>
-      </div>
     </div>
   )
 }
@@ -387,84 +762,95 @@ function ItemCard({ item, isSelected, isPublished, onToggleSelect, onEdit, onDel
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function PublishPage() {
-  const {
-    catalog, setCatalog,
-    provider, isDemoMode,
-    publishedItemIds, addPublishedItemIds, removePublishedItemIds,
-    publishLoading, setPublishLoading,
-    lastPublishedAt,
-    addNotification,
-  } = useBecknStore()
-
-  const [query,       setQuery]       = useState('')
-  const [category,    setCategory]    = useState('all')
-  const [statusFilter, setStatusFilter] = useState('all') // all | published | draft
-  const [selected,    setSelected]    = useState(new Set())
-  const [editItem,    setEditItem]    = useState(null)
-  const [showAdd,     setShowAdd]     = useState(false)
-  const [showConfirm, setShowConfirm] = useState(false)
-  const [toast,       setToast]       = useState(null)
+  const [products,       setProducts]       = useState([])
+  const [loading,        setLoading]        = useState(false)
+  const [fetchError,     setFetchError]     = useState(null)
+  const [publishLoading, setPublishLoading] = useState(false)
+  const [selected,       setSelected]       = useState(new Set())   // resourceIds
+  const [publishedIds,   setPublishedIds]   = useState(new Set())   // track locally after publish
+  const [query,          setQuery]          = useState('')
+  const [showAdd,        setShowAdd]        = useState(false)
+  const [showConfirm,    setShowConfirm]    = useState(false)
+  const [toast,          setToast]          = useState(null)
 
   const showToast = (message, type = 'success') => {
     setToast({ message, type })
     setTimeout(() => setToast(null), 3500)
   }
 
-  // ── Derived data ─────────────────────────────────────────────────────────
+  // ── Fetch products ────────────────────────────────────────────────────────
 
-  const filtered = catalog.filter((item) => {
-    const matchQ = item.descriptor.name.toLowerCase().includes(query.toLowerCase())
-    const matchC = category === 'all' || item.category_id === category
-    const isPublished = publishedItemIds.has(item.id)
-    const matchS =
-      statusFilter === 'all'       ? true :
-      statusFilter === 'published' ? isPublished :
-      /* draft */                    !isPublished
-    return matchQ && matchC && matchS
+  const fetchProducts = useCallback(async () => {
+    setLoading(true)
+    setFetchError(null)
+    try {
+      const data = await getProducts({ page: 1, limit: 100 })
+      const list = Array.isArray(data)
+        ? data
+        : data.products ?? data.data ?? data.items ?? []
+      setProducts(list)
+
+      // Sync published state from API response
+      const alreadyPublished = list
+        .filter((p) => p.isPublished)
+        .map((p) => p.resourceId || p._id || p.id)
+      if (alreadyPublished.length) {
+        setPublishedIds((prev) => new Set([...prev, ...alreadyPublished]))
+      }
+    } catch (err) {
+      setFetchError(err)
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => { fetchProducts() }, [fetchProducts])
+
+  // ── Derived ───────────────────────────────────────────────────────────────
+
+  const filtered = products.filter((p) => {
+    if (!query) return true
+    const name = (p.name || p.descriptor?.name || '').toLowerCase()
+    const id   = (p.resourceId || p._id || '').toLowerCase()
+    return name.includes(query.toLowerCase()) || id.includes(query.toLowerCase())
   })
 
-  const allCategories = ['all', ...new Set(catalog.map((i) => i.category_id))]
-  const publishedCount = catalog.filter((i) => publishedItemIds.has(i.id)).length
-  const draftCount     = catalog.length - publishedCount
-  const selectedItems  = catalog.filter((i) => selected.has(i.id))
+  const selectedList = [...selected]
 
-  // ── Selection handlers ────────────────────────────────────────────────────
+  // ── Handlers ──────────────────────────────────────────────────────────────
 
-  const toggleSelect = useCallback((id) => {
+  const toggleSelect = (id) => {
     setSelected((prev) => {
       const next = new Set(prev)
       next.has(id) ? next.delete(id) : next.add(id)
       return next
     })
-  }, [])
+  }
 
-  const selectAll = () => setSelected(new Set(filtered.map((i) => i.id)))
-  const clearSelection = () => setSelected(new Set())
+  const selectAll   = () => setSelected(new Set(filtered.map((p) => p.resourceId || p._id || p.id)))
+  const clearSelect = () => setSelected(new Set())
 
-  const selectDraft = () =>
-    setSelected(new Set(filtered.filter((i) => !publishedItemIds.has(i.id)).map((i) => i.id)))
-
-  // ── Publish ───────────────────────────────────────────────────────────────
+  const handleAdded = (addedItem) => {
+    // Prepend optimistically; fetchProducts will reconcile
+    setProducts((prev) => [addedItem, ...prev])
+    showToast(`"${addedItem.name}" added — select it below to publish`)
+  }
 
   const handlePublish = async () => {
     setPublishLoading(true)
     try {
-      if (!isDemoMode) {
-        // POST /publish — { resourceIds: ["id1", "id2", ...] }
-        await publishItems([...selected])
-      } else {
-        // Demo: simulate 800ms network delay
-        await new Promise((r) => setTimeout(r, 800))
+      const result = await publishItems(selectedList)
+
+      if (result?.message?.ack?.status === 'NACK') {
+        showToast(result.error || 'Publish failed — server returned NACK', 'error')
+        return
       }
-      addPublishedItemIds([...selected])
-      addNotification({
-        type:    'success',
-        title:   'Catalog Published',
-        message: `${selected.size} item${selected.size !== 1 ? 's' : ''} published to Beckn network`,
-      })
-      showToast(`${selected.size} item${selected.size !== 1 ? 's' : ''} published successfully!`)
+
+      setPublishedIds((prev) => new Set([...prev, ...selectedList]))
+      showToast(`${selectedList.length} item${selectedList.length !== 1 ? 's' : ''} published successfully!`)
       setSelected(new Set())
       setShowConfirm(false)
+      fetchProducts() // refresh to get server-side isPublished flags
     } catch (err) {
       showToast(err.message || 'Publish failed. Please try again.', 'error')
     } finally {
@@ -472,77 +858,24 @@ export default function PublishPage() {
     }
   }
 
-  // ── Unpublish ─────────────────────────────────────────────────────────────
-
-  const handleUnpublish = async (itemId) => {
-    setPublishLoading(true)
-    try {
-      if (!isDemoMode) {
-        await unpublishCatalogItems({ context: null, message: { provider_id: provider.id, item_ids: [itemId] } })
-      } else {
-        await new Promise((r) => setTimeout(r, 500))
-      }
-      removePublishedItemIds([itemId])
-      showToast('Item removed from Beckn network')
-    } catch (err) {
-      showToast(err.message || 'Unpublish failed.', 'error')
-    } finally {
-      setPublishLoading(false)
-    }
-  }
-
-  // ── Edit / Save ───────────────────────────────────────────────────────────
-
-  const handleSaveEdit = async (updatedItem) => {
-    const isPublished = publishedItemIds.has(updatedItem.id)
-    setCatalog(catalog.map((i) => (i.id === updatedItem.id ? updatedItem : i)))
-
-    if (isPublished && !isDemoMode) {
-      try {
-        await updateCatalogItem(updatedItem.id, { provider_id: provider.id, item: updatedItem })
-        showToast('Item updated on Beckn network')
-      } catch (err) {
-        showToast('Local save OK — network sync failed', 'error')
-      }
-    } else {
-      showToast('Item updated locally')
-    }
-  }
-
-  // ── Add / Delete ──────────────────────────────────────────────────────────
-
-  const handleAdd = (item) => {
-    setCatalog([item, ...catalog])
-    setStatusFilter('draft')
-    setCategory('all')
-    setQuery('')
-    showToast('Product added — select it below to publish')
-  }
-
-  const handleDelete = (id) => {
-    setCatalog(catalog.filter((i) => i.id !== id))
-    setSelected((prev) => { const n = new Set(prev); n.delete(id); return n })
-    showToast('Product removed from catalog')
-  }
-
   // ─────────────────────────────────────────────────────────────────────────
 
   return (
     <div className="space-y-5">
-      {/* ── Page Header ── */}
+
+      {/* ── Header ── */}
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-xl font-bold text-gray-900">Publish Catalog</h1>
           <p className="text-sm text-gray-500 mt-0.5">
-            Manage which products are live on the Beckn network
-            {lastPublishedAt && (
-              <span className="ml-2 text-xs text-gray-400">
-                · Last published {new Date(lastPublishedAt).toLocaleTimeString()}
-              </span>
-            )}
+            Add products and publish them to the Beckn network
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <button onClick={fetchProducts} disabled={loading} title="Refresh"
+            className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
+            <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
+          </button>
           <button onClick={() => setShowAdd(true)} className="beckn-btn-secondary text-sm">
             <Plus size={15} /> Add Product
           </button>
@@ -561,162 +894,116 @@ export default function PublishPage() {
         </div>
       </div>
 
-      {/* ── Stats Bar ── */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      {/* ── Stats ── */}
+      <div className="grid grid-cols-3 gap-3">
         {[
-          { label: 'Total Items',  value: catalog.length,  icon: Layers,       color: 'text-gray-600',   bg: 'bg-gray-50'    },
-          { label: 'Published',    value: publishedCount,  icon: Globe,        color: 'text-emerald-600', bg: 'bg-emerald-50' },
-          { label: 'Draft',        value: draftCount,      icon: Package,      color: 'text-amber-600',  bg: 'bg-amber-50'   },
-          { label: 'Selected',     value: selected.size,   icon: CheckCircle2, color: 'text-blue-600',   bg: 'bg-blue-50'    },
-        ].map(({ label, value, icon: Icon, color, bg }) => (
-          <div key={label} className={`rounded-xl p-3 flex items-center gap-3 ${bg}`}>
-            <div className={`${color}`}><Icon size={20} /></div>
-            <div>
-              <p className="text-xs text-gray-500 font-medium">{label}</p>
-              <p className={`text-lg font-bold ${color}`}>{value}</p>
-            </div>
+          { label: 'Total Products', value: products.length,                                       color: 'text-gray-700',    bg: 'bg-gray-50'    },
+          { label: 'Published',      value: publishedIds.size,                                     color: 'text-emerald-700', bg: 'bg-emerald-50' },
+          { label: 'Selected',       value: selected.size,                                         color: 'text-blue-700',    bg: 'bg-blue-50'    },
+        ].map(({ label, value, color, bg }) => (
+          <div key={label} className={`rounded-xl p-3 ${bg}`}>
+            <p className="text-xs text-gray-500 font-medium">{label}</p>
+            <p className={`text-xl font-bold ${color}`}>{value}</p>
           </div>
         ))}
       </div>
 
-      {/* ── Filters & Actions ── */}
+      {/* ── Fetch error ── */}
+      {fetchError && (
+        <div className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-700">
+          <AlertCircle size={15} className="flex-shrink-0" />
+          <span>{fetchError.message || 'Failed to load products.'}</span>
+          <button onClick={fetchProducts} className="ml-auto text-xs underline font-medium">Retry</button>
+        </div>
+      )}
+
+      {/* ── Search & bulk controls ── */}
       <div className="flex flex-wrap items-center gap-3">
-        {/* Search */}
         <div className="relative flex-1 min-w-[200px]">
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search products…"
+            placeholder="Search by name or resource ID…"
             className="beckn-input pl-9"
           />
         </div>
-
-        {/* Status filter pills */}
-        <div className="flex gap-1.5">
-          {[
-            { key: 'all',       label: 'All'       },
-            { key: 'published', label: 'Published' },
-            { key: 'draft',     label: 'Draft'     },
-          ].map(({ key, label }) => (
-            <button key={key} onClick={() => setStatusFilter(key)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${
-                statusFilter === key
-                  ? 'bg-blue-600 text-white border-blue-600'
-                  : 'bg-white text-gray-600 border-gray-200 hover:border-blue-300'
-              }`}>
-              {label}
+        {filtered.length > 0 && (
+          <div className="flex items-center gap-3 text-xs text-gray-500">
+            <button onClick={selectAll} className="hover:text-blue-600 font-medium transition-colors">
+              Select All ({filtered.length})
             </button>
-          ))}
-        </div>
-
-        {/* Category filter */}
-        <div className="flex gap-1.5 flex-wrap">
-          {allCategories.map((c) => (
-            <button key={c} onClick={() => setCategory(c)}
-              className={`px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
-                category === c
-                  ? 'bg-gray-800 text-white border-gray-800'
-                  : 'bg-white text-gray-500 border-gray-200 hover:border-gray-400'
-              }`}>
-              {c === 'all' ? 'All Categories' : c.charAt(0).toUpperCase() + c.slice(1)}
-            </button>
-          ))}
-        </div>
+            {selected.size > 0 && (
+              <>
+                <span>·</span>
+                <button onClick={clearSelect} className="hover:text-red-500 font-medium transition-colors">
+                  Clear
+                </button>
+                <span className="text-blue-600 font-semibold">{selected.size} selected</span>
+              </>
+            )}
+          </div>
+        )}
       </div>
 
-      {/* ── Bulk Selection Bar ── */}
-      {filtered.length > 0 && (
-        <div className="flex items-center gap-3 text-xs text-gray-500">
-          <button onClick={selectAll} className="hover:text-blue-600 font-medium transition-colors">
-            Select All ({filtered.length})
-          </button>
-          <span>·</span>
-          <button onClick={selectDraft} className="hover:text-amber-600 font-medium transition-colors">
-            Select Draft
-          </button>
-          {selected.size > 0 && (
-            <>
-              <span>·</span>
-              <button onClick={clearSelection} className="hover:text-red-500 font-medium transition-colors">
-                Clear Selection
-              </button>
-              <span className="ml-auto text-blue-600 font-semibold">
-                {selected.size} selected
-              </span>
-            </>
-          )}
-        </div>
-      )}
-
       {/* ── Product Grid ── */}
-      {filtered.length === 0 ? (
+      {loading && products.length === 0 ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <div key={i} className="beckn-card animate-pulse">
+              <div className="h-32 bg-gray-100 rounded-t-xl" />
+              <div className="p-3 space-y-2">
+                <div className="h-3 bg-gray-100 rounded w-16" />
+                <div className="h-4 bg-gray-100 rounded w-3/4" />
+                <div className="h-3 bg-gray-100 rounded w-full" />
+                <div className="h-4 bg-gray-100 rounded w-1/3" />
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : filtered.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 text-gray-400">
-          <Package size={44} className="mb-3" />
-          <p className="font-medium text-gray-500">No products found</p>
-          <p className="text-sm mt-1">
-            {statusFilter === 'published'
-              ? 'No items published yet. Select items and click Publish.'
-              : statusFilter === 'draft'
-              ? 'All items are published!'
-              : 'Add products to your catalog to get started.'}
+          <Package size={44} className="mb-3 opacity-40" />
+          <p className="font-medium text-gray-500">
+            {query ? 'No products match your search' : 'No products yet'}
           </p>
-          {statusFilter === 'draft' && draftCount === 0 && (
+          {!query && (
             <button onClick={() => setShowAdd(true)} className="mt-4 beckn-btn-primary text-sm">
-              <Plus size={14} /> Add Product
+              <Plus size={14} /> Add Your First Product
             </button>
           )}
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {filtered.map((item) => (
-            <ItemCard
-              key={item.id}
-              item={item}
-              isSelected={selected.has(item.id)}
-              isPublished={publishedItemIds.has(item.id)}
-              onToggleSelect={toggleSelect}
-              onEdit={setEditItem}
-              onDelete={handleDelete}
-              onUnpublish={handleUnpublish}
-            />
-          ))}
-        </div>
-      )}
-
-      {/* ── Demo mode notice ── */}
-      {isDemoMode && (
-        <div className="flex items-center gap-2 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-4 py-2.5">
-          <AlertCircle size={14} className="flex-shrink-0" />
-          <span>
-            <span className="font-semibold">Demo Mode:</span> Publish/unpublish actions are simulated locally.
-            Connect your BPP backend to make items live on the Beckn network.
-          </span>
+          {filtered.map((item, i) => {
+            const id = item.resourceId || item._id || item.id || String(i)
+            return (
+              <ProductCard
+                key={id}
+                item={item}
+                isSelected={selected.has(id)}
+                isPublished={publishedIds.has(id) || item.isPublished}
+                onToggle={toggleSelect}
+              />
+            )
+          })}
         </div>
       )}
 
       {/* ── Modals ── */}
       {showAdd && (
-        <AddProductModal onClose={() => setShowAdd(false)} onAdd={handleAdd} />
-      )}
-      {editItem && (
-        <EditItemModal
-          item={editItem}
-          onClose={() => setEditItem(null)}
-          onSave={handleSaveEdit}
-        />
+        <AddProductModal onClose={() => setShowAdd(false)} onAdded={handleAdded} />
       )}
       {showConfirm && (
         <ConfirmPublishModal
-          items={selectedItems}
+          items={selectedList}
           onConfirm={handlePublish}
           onClose={() => setShowConfirm(false)}
           loading={publishLoading}
         />
       )}
 
-      {/* ── Toast ── */}
-      <Toast toast={toast} />
+      <ToastMsg toast={toast} />
     </div>
   )
 }

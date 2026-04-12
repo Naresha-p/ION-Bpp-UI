@@ -4,13 +4,14 @@ import { ChevronDown } from 'lucide-react'
 import {
   LayoutDashboard, Package, ShoppingCart, Settings,
   HelpCircle, Users, ChevronRight, CheckCircle2,
-  XCircle,
+  XCircle, Upload,
 } from 'lucide-react'
 import useBecknStore from '../../store/becknStore'
 
 const NAV_ITEMS = [
   { to: '/',          icon: LayoutDashboard, label: 'Dashboard' },
   { to: '/products',  icon: Package,         label: 'Products'  },
+  { to: '/publish',   icon: Upload,          label: 'Publish'   },
   { to: '/orders',    icon: ShoppingCart,    label: 'Orders'    },
   { to: '/settings',  icon: Settings,        label: 'Settings'  },
 ]

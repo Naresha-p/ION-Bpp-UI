@@ -17,27 +17,39 @@
  */
 
 import axios from 'axios'
-import { BPP_UI_URL } from './config'
+import { BPP_UI_URL, TSP_URL } from './config'
 import { classifyError } from '../utils/apiError'
 
-// ─── Single shared axios instance ────────────────────────────────────────────
+// ─── Shared interceptor factory ───────────────────────────────────────────────
 
-const bppClient = axios.create({
+function attachInterceptors(client) {
+  client.interceptors.request.use((config) => {
+    const token = localStorage.getItem('ion_token')
+    if (token) config.headers.Authorization = `Bearer ${token}`
+    return config
+  })
+  client.interceptors.response.use(
+    (res) => res.data,
+    (err) => Promise.reject(classifyError(err))
+  )
+  return client
+}
+
+// ─── BPP UI client (dashboard, orders, products …) ───────────────────────────
+
+const bppClient = attachInterceptors(axios.create({
   baseURL: BPP_UI_URL,
   headers: { 'Content-Type': 'application/json' },
   timeout: 15000,
-})
+}))
 
-bppClient.interceptors.request.use((config) => {
-  const token = localStorage.getItem('ion_token')
-  if (token) config.headers.Authorization = `Bearer ${token}`
-  return config
-})
+// ─── TSP client (resources/add, publish) ─────────────────────────────────────
 
-bppClient.interceptors.response.use(
-  (res) => res.data,
-  (err) => Promise.reject(classifyError(err))
-)
+const tspClient = attachInterceptors(axios.create({
+  baseURL: TSP_URL,
+  headers: { 'Content-Type': 'application/json' },
+  timeout: 15000,
+}))
 
 // ─── Dashboard ────────────────────────────────────────────────────────────────
 
@@ -66,11 +78,11 @@ export function getProducts({ page = 1, limit = 20 } = {}) {
 }
 
 /**
- * POST /resourse/add  (typo in API path is intentional)
- * Full payload shape — see curl spec in project docs.
+ * POST /resources/add  — upsert by resourceId
+ * Full payload shape matches ResourceRequest schema.
  */
 export function addProduct(payload) {
-  return bppClient.post('/resources/add', payload)
+  return tspClient.post('/resources/add', payload)
 }
 
 /** DELETE /products/:id */
@@ -86,12 +98,11 @@ export function updateProduct(productId, payload) {
 // ─── Publish ──────────────────────────────────────────────────────────────────
 
 /**
- * POST /publish
+ * POST /publish  — { resourceIds: string[] }
  * Makes resources discoverable on the Beckn network.
- * @param {string[]} resourceIds
  */
 export function publishItems(resourceIds) {
-  return bppClient.post('/publish', { resourceIds })
+  return tspClient.post('/publish', { resourceIds })
 }
 
 // ─── Catalog ──────────────────────────────────────────────────────────────────

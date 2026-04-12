@@ -7,6 +7,9 @@
 // ─── BPP UI REST API (all endpoints: dashboard, orders, products, publish …) ──
 export const BPP_UI_URL = import.meta.env.VITE_BPP_UI_URL || 'https://tsp.nearshop.in/bpp-ui'
 
+// ─── TSP base URL (resources/add, publish) ───────────────────────────────────
+export const TSP_URL = import.meta.env.VITE_TSP_URL || 'https://tsp.nearshop.in/bpp-ui'
+
 // ─── Beckn Gateway (protocol actions: search, select, init, confirm …) ───────
 export const BECKN_BG_URL = import.meta.env.VITE_BECKN_BG_URL || '/api/beckn'
 
