@@ -1126,7 +1126,7 @@ function DeleteConfirmModal({ item, onConfirm, onClose, loading }) {
 
 // ─── Product Card ─────────────────────────────────────────────────────────────
 
-function ProductCard({ item, onEdit, onDelete }) {
+function ProductCard({ item, onEdit }) {
   const price      = item.unitPrice ?? item.price?.value
   const currency   = item.currency || item.price?.currency || 'IDR'
   const name       = item.name || item.descriptor?.name || '—'
@@ -1199,18 +1199,11 @@ function ProductCard({ item, onEdit, onDelete }) {
 
         <div className="flex gap-1.5 pt-1">
           <button onClick={() => onEdit(item)}
-            className="flex-1 flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-lg text-xs font-semibold transition-all"
+            className="w-full flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-lg text-xs font-semibold transition-all"
             style={{ border: '1px solid var(--border)', color: 'var(--text-2)', background: 'transparent' }}
             onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.5)'; e.currentTarget.style.color = '#a5b4fc'; e.currentTarget.style.background = 'rgba(99,102,241,0.08)' }}
             onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-2)'; e.currentTarget.style.background = 'transparent' }}>
             <Edit2 size={12} /> Edit
-          </button>
-          <button onClick={() => onDelete(item)}
-            className="flex-1 flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-lg text-xs font-semibold transition-all"
-            style={{ border: '1px solid var(--border)', color: 'var(--text-2)', background: 'transparent' }}
-            onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(244,63,94,0.4)'; e.currentTarget.style.color = '#fda4af'; e.currentTarget.style.background = 'rgba(244,63,94,0.08)' }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-2)'; e.currentTarget.style.background = 'transparent' }}>
-            <Trash2 size={12} /> Delete
           </button>
         </div>
       </div>
@@ -1372,7 +1365,6 @@ export default function ProductsPage() {
               key={item.resourceId || item._id || item.id || i}
               item={item}
               onEdit={setEditItem}
-              onDelete={setDeleteItem}
             />
           ))}
         </div>

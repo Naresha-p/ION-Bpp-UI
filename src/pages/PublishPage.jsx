@@ -54,8 +54,6 @@ const EMPTY_FORM = {
 
 function validate(form) {
   const errs = {}
-  if (!form.offerId.trim())          errs.offerId          = 'Offer ID is required'
-  if (!form.providerId.trim())       errs.providerId       = 'Provider ID is required'
   if (!form.name.trim())             errs.name             = 'Product name is required'
   if (!form.shortDesc.trim())        errs.shortDesc        = 'Short description is required'
   if (!form.unitPrice)               errs.unitPrice        = 'Unit price is required'
@@ -106,7 +104,14 @@ function formatPrice(price, currency) {
 
 function AddProductModal({ onClose, onAdded }) {
   const autoResourceId = useMemo(() => `item-${uuidv4()}`, [])
-  const [form, setForm]       = useState({ ...EMPTY_FORM, resourceId: autoResourceId })
+  const autoOfferId    = useMemo(() => `offer-${uuidv4()}`, [])
+  const autoProviderId = useMemo(() => `provider-${uuidv4()}`, [])
+  const [form, setForm]       = useState({
+    ...EMPTY_FORM,
+    resourceId: autoResourceId,
+    offerId:    autoOfferId,
+    providerId: autoProviderId,
+  })
   const [errors, setErrors]   = useState({})
   const [apiError, setApiError] = useState(null)
   const [loading, setLoading] = useState(false)
@@ -133,7 +138,7 @@ function AddProductModal({ onClose, onAdded }) {
     if (Object.keys(errs).length) {
       setErrors(errs)
       // open the section that has errors
-      const coreFields = ['offerId','providerId','name','shortDesc','imageUri','unitPrice','brand','originCountry','weightQty','cuisine','prepInstructions']
+      const coreFields = ['name','shortDesc','imageUri','unitPrice','brand','originCountry','weightQty','cuisine','prepInstructions']
       if (coreFields.some((k) => errs[k])) setSections((s) => ({ ...s, core: true }))
       return
     }
@@ -260,18 +265,15 @@ function AddProductModal({ onClose, onAdded }) {
                 </div>
 
                 <div>
-                  <Label required>Offer ID</Label>
-                  <input className={`beckn-input ${errors.offerId ? 'border-red-400' : ''}`}
-                    placeholder="offer-butter-chicken-001"
-                    value={form.offerId} onChange={(e) => set('offerId', e.target.value)} />
-                  <FieldError msg={errors.offerId} />
+                  <Label>Offer ID</Label>
+                  <input readOnly className="beckn-input opacity-60 cursor-default select-all"
+                    value={form.offerId} />
                 </div>
 
                 <div>
-                  <Label required>Provider ID</Label>
-                  <input className={`beckn-input ${errors.providerId ? 'border-red-400' : ''}`}
-                    value={form.providerId} onChange={(e) => set('providerId', e.target.value)} />
-                  <FieldError msg={errors.providerId} />
+                  <Label>Provider ID</Label>
+                  <input readOnly className="beckn-input opacity-60 cursor-default select-all"
+                    value={form.providerId} />
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
