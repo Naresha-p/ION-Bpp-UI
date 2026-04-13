@@ -10,7 +10,7 @@ import HelpPage      from './pages/HelpPage'
 
 export default function App() {
   return (
-    <BrowserRouter>
+    <BrowserRouter basename="/bpp-admin">
       <Routes>
         <Route element={<Layout />}>
           <Route index              element={<DashboardPage />} />
