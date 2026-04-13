@@ -64,7 +64,7 @@ export default function SettingsPage() {
               <input className="beckn-input" value={form.name}
                 onChange={(e) => set('name', e.target.value)} />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-semibold uppercase tracking-wide mb-1.5"
                   style={{ color: 'var(--text-3)' }}>Phone</label>
@@ -103,7 +103,7 @@ export default function SettingsPage() {
           </div>
 
           <div className="p-5 space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-semibold uppercase tracking-wide mb-1.5"
                   style={{ color: 'var(--text-3)' }}>BAP ID</label>
@@ -130,7 +130,7 @@ export default function SettingsPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
                 <label className="block text-xs font-semibold uppercase tracking-wide mb-1.5"
                   style={{ color: 'var(--text-3)' }}>Domain</label>

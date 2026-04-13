@@ -114,7 +114,7 @@ export default function DashboardPage() {
       ) : null}
 
       {/* ── Quick actions ── */}
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <Link to="/products"
           className="beckn-card p-4 flex items-center gap-3 hover:shadow-card-hover hover:-translate-y-0.5 transition-all duration-200 group">
           <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
@@ -212,8 +212,10 @@ export default function DashboardPage() {
                     </div>
                     <p className="text-xs mt-0.5 truncate" style={{ color: 'var(--text-3)' }}>
                       {itemName}{count > 1 && ` +${count - 1} more`}
-                      {' · '}
-                      <span className="font-mono">txn:{order.transactionId?.slice(0, 8)}…</span>
+                      <span className="hidden sm:inline">
+                        {' · '}
+                        <span className="font-mono">txn:{order.transactionId?.slice(0, 8)}…</span>
+                      </span>
                     </p>
                   </div>
 

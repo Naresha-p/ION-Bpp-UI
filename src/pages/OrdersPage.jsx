@@ -514,7 +514,7 @@ export default function OrdersPage() {
       </div>
 
       {/* ── Search ── */}
-      <div className="relative max-w-sm">
+      <div className="relative w-full sm:max-w-sm">
         <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-3)' }} />
         <input
           value={searchQuery}
@@ -677,7 +677,7 @@ export default function OrdersPage() {
         </div>
 
         {/* ── Pagination ── */}
-        <div className="flex items-center justify-between px-4 py-3 text-sm"
+        <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 text-sm"
           style={{ borderTop: '1px solid var(--border)', color: 'var(--text-3)' }}>
           <span>
             {loading ? 'Loading…' : `Page ${page} of ${totalPages} · ${total} order${total !== 1 ? 's' : ''}`}

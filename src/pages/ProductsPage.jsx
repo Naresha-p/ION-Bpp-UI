@@ -1,11 +1,11 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import {
-  Search, Package, Edit2, Trash2, X, Save, Plus,
+  Search, Package, X, Plus,
   ChevronDown, ChevronUp, RefreshCw, CheckCircle2, XCircle, AlertCircle,
 } from 'lucide-react'
 import { Toast, ErrorBanner, ErrorPage } from '../components/common/ErrorDisplay'
-import { getProducts, addProduct, deleteProduct } from '../api/bppApi'
+import { getProducts, addProduct } from '../api/bppApi'
 import { formatIDR } from '../utils/format'
 
 const PAGE_LIMIT = 20
@@ -184,7 +184,7 @@ function AddProductModal({ onClose, onAdded }) {
             {sections.resource && (
               <div className="space-y-3">
 
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <Label required>Resource ID</Label>
                     <input required className="beckn-input" placeholder="item-butter-chicken-001"
@@ -203,7 +203,7 @@ function AddProductModal({ onClose, onAdded }) {
                     value={form.providerId} onChange={(e) => set('providerId', e.target.value)} />
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <Label required>Product Name</Label>
                     <input required className="beckn-input" placeholder="Butter Chicken"
@@ -231,7 +231,7 @@ function AddProductModal({ onClose, onAdded }) {
                     value={form.imageUri} onChange={(e) => set('imageUri', e.target.value)} />
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <Label required>Unit Price</Label>
                     <input required type="number" min="0" step="0.01" className="beckn-input"
@@ -248,7 +248,7 @@ function AddProductModal({ onClose, onAdded }) {
                 </div>
 
                 {/* resourceAttributes — all required */}
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <Label required>Brand</Label>
                     <input required className="beckn-input" placeholder="Spice Garden"
@@ -261,7 +261,7 @@ function AddProductModal({ onClose, onAdded }) {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <Label required>Cuisine</Label>
                     <input required className="beckn-input" placeholder="North Indian"
@@ -276,7 +276,7 @@ function AddProductModal({ onClose, onAdded }) {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div className="col-span-2">
                     <Label required>Weight Quantity</Label>
                     <input required type="number" min="0" step="0.1" className="beckn-input"
@@ -308,7 +308,7 @@ function AddProductModal({ onClose, onAdded }) {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div>
                     <Label required>Prep Instructions</Label>
                     <input required className="beckn-input" placeholder="Heat and serve"
@@ -361,7 +361,7 @@ function AddProductModal({ onClose, onAdded }) {
                     Returns Allowed
                   </label>
                   {form.returnsAllowed && (
-                    <div className="grid grid-cols-2 gap-3 pt-1">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
                       <div>
                         <Label>Return Window</Label>
                         <input className="beckn-input" placeholder="P1D"
@@ -388,7 +388,7 @@ function AddProductModal({ onClose, onAdded }) {
                     Cancellation Allowed
                   </label>
                   {form.cancellationAllowed && (
-                    <div className="grid grid-cols-2 gap-3 pt-1">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
                       <div>
                         <Label>Cancellation Window</Label>
                         <input className="beckn-input" placeholder="PT30M"
@@ -415,7 +415,7 @@ function AddProductModal({ onClose, onAdded }) {
                     Replacement Allowed
                   </label>
                   {form.replacementAllowed && (
-                    <div className="grid grid-cols-2 gap-3 pt-1">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
                       <div>
                         <Label>Replacement Window</Label>
                         <input className="beckn-input" placeholder="P7D"
@@ -466,7 +466,7 @@ function AddProductModal({ onClose, onAdded }) {
               onToggle={() => toggleSection('serviceability')} />
             {sections.serviceability && (
               <div className="space-y-3">
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <Label>Max Distance</Label>
                     <input type="number" min="0" className="beckn-input" placeholder="8"
@@ -497,7 +497,7 @@ function AddProductModal({ onClose, onAdded }) {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <Label>Opens</Label>
                     <input type="time" className="beckn-input" value={form.timingStart}
@@ -773,7 +773,7 @@ function EditModal({ item, onClose, onSaved }) {
                   <FieldError msg={errors.providerId} />
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <Label required>Product Name</Label>
                     <input className={`beckn-input ${errors.name ? 'border-red-400' : ''}`}
@@ -802,7 +802,7 @@ function EditModal({ item, onClose, onSaved }) {
                     value={form.imageUri} onChange={(e) => set('imageUri', e.target.value)} />
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <Label required>Unit Price</Label>
                     <input type="number" min="0" step="0.01"
@@ -819,7 +819,7 @@ function EditModal({ item, onClose, onSaved }) {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <Label required>Brand</Label>
                     <input className={`beckn-input ${errors.brand ? 'border-red-400' : ''}`}
@@ -834,7 +834,7 @@ function EditModal({ item, onClose, onSaved }) {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <Label required>Cuisine</Label>
                     <input className={`beckn-input ${errors.cuisine ? 'border-red-400' : ''}`}
@@ -850,7 +850,7 @@ function EditModal({ item, onClose, onSaved }) {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div className="col-span-2">
                     <Label required>Weight Quantity</Label>
                     <input type="number" min="0" step="0.1"
@@ -883,7 +883,7 @@ function EditModal({ item, onClose, onSaved }) {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div>
                     <Label required>Prep Instructions</Label>
                     <input className={`beckn-input ${errors.prepInstructions ? 'border-red-400' : ''}`}
@@ -935,7 +935,7 @@ function EditModal({ item, onClose, onSaved }) {
                     Returns Allowed
                   </label>
                   {form.returnsAllowed && (
-                    <div className="grid grid-cols-2 gap-3 pt-1">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
                       <div><Label>Return Window</Label>
                         <input className="beckn-input" placeholder="P1D" value={form.returnsWindow}
                           onChange={(e) => set('returnsWindow', e.target.value)} /></div>
@@ -956,7 +956,7 @@ function EditModal({ item, onClose, onSaved }) {
                     Cancellation Allowed
                   </label>
                   {form.cancellationAllowed && (
-                    <div className="grid grid-cols-2 gap-3 pt-1">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
                       <div><Label>Cancellation Window</Label>
                         <input className="beckn-input" placeholder="PT30M" value={form.cancellationWindow}
                           onChange={(e) => set('cancellationWindow', e.target.value)} /></div>
@@ -977,7 +977,7 @@ function EditModal({ item, onClose, onSaved }) {
                     Replacement Allowed
                   </label>
                   {form.replacementAllowed && (
-                    <div className="grid grid-cols-2 gap-3 pt-1">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
                       <div><Label>Replacement Window</Label>
                         <input className="beckn-input" placeholder="P7D" value={form.replacementWindow}
                           onChange={(e) => set('replacementWindow', e.target.value)} /></div>
@@ -1022,7 +1022,7 @@ function EditModal({ item, onClose, onSaved }) {
               onToggle={() => toggleSection('serviceability')} />
             {sections.serviceability && (
               <div className="space-y-3">
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div><Label>Max Distance</Label>
                     <input type="number" min="0" className="beckn-input" value={form.maxDistance}
                       onChange={(e) => set('maxDistance', e.target.value)} /></div>
@@ -1049,7 +1049,7 @@ function EditModal({ item, onClose, onSaved }) {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div><Label>Opens</Label>
                     <input type="time" className="beckn-input" value={form.timingStart}
                       onChange={(e) => set('timingStart', e.target.value)} /></div>
@@ -1126,7 +1126,7 @@ function DeleteConfirmModal({ item, onConfirm, onClose, loading }) {
 
 // ─── Product Card ─────────────────────────────────────────────────────────────
 
-function ProductCard({ item, onEdit, onDelete }) {
+function ProductCard({ item }) {
   const price      = item.unitPrice ?? item.price?.value
   const currency   = item.currency || item.price?.currency || 'IDR'
   const name       = item.name || item.descriptor?.name || '—'
@@ -1197,22 +1197,6 @@ function ProductCard({ item, onEdit, onDelete }) {
         </div>
         <p className="text-[10px] font-mono truncate" style={{ color: 'var(--text-3)' }}>{resourceId}</p>
 
-        <div className="flex gap-1.5 pt-1">
-          <button onClick={() => onEdit(item)}
-            className="flex-1 flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-lg text-xs font-semibold transition-all"
-            style={{ border: '1px solid var(--border)', color: 'var(--text-2)', background: 'transparent' }}
-            onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.5)'; e.currentTarget.style.color = '#a5b4fc'; e.currentTarget.style.background = 'rgba(99,102,241,0.08)' }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-2)'; e.currentTarget.style.background = 'transparent' }}>
-            <Edit2 size={12} /> Edit
-          </button>
-          <button onClick={() => onDelete(item)}
-            className="flex-1 flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-lg text-xs font-semibold transition-all"
-            style={{ border: '1px solid var(--border)', color: 'var(--text-2)', background: 'transparent' }}
-            onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(244,63,94,0.4)'; e.currentTarget.style.color = '#fda4af'; e.currentTarget.style.background = 'rgba(244,63,94,0.08)' }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-2)'; e.currentTarget.style.background = 'transparent' }}>
-            <Trash2 size={12} /> Delete
-          </button>
-        </div>
       </div>
     </div>
   )
@@ -1245,10 +1229,7 @@ export default function ProductsPage() {
   const [error,         setError]         = useState(null)
   const [page,          setPage]          = useState(1)
   const [query,         setQuery]         = useState(() => searchParams.get('q') || '')
-  const [editItem,      setEditItem]      = useState(null)
-  const [deleteItem,    setDeleteItem]    = useState(null)
-  const [actionLoading, setActionLoading] = useState(false)
-  const [toast,         setToast]         = useState(null)
+  const [toast, setToast] = useState(null)
 
   const showToast = (message, type = 'success') => {
     setToast({ message, type })
@@ -1289,26 +1270,6 @@ export default function ProductsPage() {
 
   const handleAdded = () => {
     showToast('Product added successfully')
-    fetchProducts()
-  }
-
-  const handleDeleteConfirm = async () => {
-    setActionLoading(true)
-    try {
-      const id = deleteItem.resourceId || deleteItem._id || deleteItem.id
-      await deleteProduct(id)
-      setDeleteItem(null)
-      showToast(`"${deleteItem.name || deleteItem.descriptor?.name}" deleted`)
-      fetchProducts()
-    } catch (err) {
-      showToast(err.message || 'Delete failed.', 'error')
-    } finally {
-      setActionLoading(false)
-    }
-  }
-
-  const handleSaveEdit = (name) => {
-    showToast(`"${name}" updated successfully`)
     fetchProducts()
   }
 
@@ -1371,8 +1332,6 @@ export default function ProductsPage() {
             <ProductCard
               key={item.resourceId || item._id || item.id || i}
               item={item}
-              onEdit={setEditItem}
-              onDelete={setDeleteItem}
             />
           ))}
         </div>
@@ -1395,16 +1354,6 @@ export default function ProductsPage() {
             </button>
           </div>
         </div>
-      )}
-
-      {/* Modals */}
-      {editItem && (
-        <EditModal item={editItem}
-          onClose={() => setEditItem(null)} onSaved={handleSaveEdit} />
-      )}
-      {deleteItem && (
-        <DeleteConfirmModal item={deleteItem} loading={actionLoading}
-          onClose={() => setDeleteItem(null)} onConfirm={handleDeleteConfirm} />
       )}
 
       <Toast toast={toast} />
