@@ -11,7 +11,7 @@ import {
   Plus, Upload, Package, Globe, RefreshCw, Search,
   CheckCircle2, AlertCircle, X, ChevronDown, ChevronUp,
 } from 'lucide-react'
-import { addProduct, publishItems, getProducts } from '../api/bppApi'
+import { addProduct, publishItems, getProducts, getProviders } from '../api/bppApi'
 import { Toast, ErrorBanner } from '../components/common/ErrorDisplay'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -54,6 +54,7 @@ const EMPTY_FORM = {
 
 function validate(form) {
   const errs = {}
+  if (!form.providerId)              errs.providerId       = 'Please select a provider'
   if (!form.name.trim())             errs.name             = 'Product name is required'
   if (!form.shortDesc.trim())        errs.shortDesc        = 'Short description is required'
   if (!form.unitPrice)               errs.unitPrice        = 'Unit price is required'
@@ -105,17 +106,35 @@ function formatPrice(price, currency) {
 function AddProductModal({ onClose, onAdded }) {
   const autoResourceId = useMemo(() => `item-${uuidv4()}`, [])
   const autoOfferId    = useMemo(() => `offer-${uuidv4()}`, [])
-  const autoProviderId = useMemo(() => `provider-${uuidv4()}`, [])
-  const [form, setForm]       = useState({
+  const [form, setForm]         = useState({
     ...EMPTY_FORM,
     resourceId: autoResourceId,
     offerId:    autoOfferId,
-    providerId: autoProviderId,
+    providerId: '',   // filled when provider is selected
   })
-  const [errors, setErrors]   = useState({})
+  const [errors, setErrors]     = useState({})
   const [apiError, setApiError] = useState(null)
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading]   = useState(false)
   const [sections, setSections] = useState({ core: true, policies: false, serviceability: false })
+
+  // Providers list
+  const [providers, setProviders]           = useState([])
+  const [providersLoading, setProvidersLoading] = useState(true)
+  const [selectedProvider, setSelectedProvider] = useState(null)
+
+  useEffect(() => {
+    getProviders()
+      .then((data) => {
+        const list = Array.isArray(data) ? data : (data.providers ?? [])
+        setProviders(list)
+        if (list.length > 0) {
+          setSelectedProvider(list[0])
+          setForm((f) => ({ ...f, providerId: list[0].providerId || list[0].id || list[0]._id || '' }))
+        }
+      })
+      .catch(() => {})
+      .finally(() => setProvidersLoading(false))
+  }, [])
 
   const set = (key, val) => {
     setForm((f) => ({ ...f, [key]: val }))
@@ -138,7 +157,7 @@ function AddProductModal({ onClose, onAdded }) {
     if (Object.keys(errs).length) {
       setErrors(errs)
       // open the section that has errors
-      const coreFields = ['name','shortDesc','imageUri','unitPrice','brand','originCountry','weightQty','cuisine','prepInstructions']
+      const coreFields = ['providerId','name','shortDesc','imageUri','unitPrice','brand','originCountry','weightQty','cuisine','prepInstructions']
       if (coreFields.some((k) => errs[k])) setSections((s) => ({ ...s, core: true }))
       return
     }
@@ -257,7 +276,7 @@ function AddProductModal({ onClose, onAdded }) {
             {sections.core && (
               <div className="space-y-3">
 
-                <div>
+                {/* <div>
                   <Label>Resource ID <span className="normal-case font-normal" style={{ color: 'var(--text-3)' }}>(auto-generated)</span></Label>
                   <div className="beckn-input font-mono text-xs select-all cursor-default truncate" style={{ background: 'var(--surface-r)', color: 'var(--text-3)' }}>
                     {form.resourceId}
@@ -268,12 +287,32 @@ function AddProductModal({ onClose, onAdded }) {
                   <Label>Offer ID</Label>
                   <input readOnly className="beckn-input opacity-60 cursor-default select-all"
                     value={form.offerId} />
-                </div>
+                </div> */}
 
                 <div>
-                  <Label>Provider ID</Label>
-                  <input readOnly className="beckn-input opacity-60 cursor-default select-all"
-                    value={form.providerId} />
+                  <Label required>Provider Name</Label>
+                  {providersLoading ? (
+                    <div className="beckn-input animate-pulse bg-gray-100 text-transparent select-none">Loading…</div>
+                  ) : (
+                    <select
+                      className={`beckn-input ${errors.providerId ? 'border-red-400' : ''}`}
+                      value={selectedProvider?.providerId || selectedProvider?.id || ''}
+                      onChange={(e) => {
+                        const found = providers.find(
+                          (p) => (p.providerId || p.id || p._id) === e.target.value
+                        )
+                        setSelectedProvider(found || null)
+                        set('providerId', e.target.value)
+                      }}>
+                      <option value="">— Select provider —</option>
+                      {providers.map((p) => {
+                        const id   = p.providerId || p.id || p._id || ''
+                        const name = p.name || p.providerName || id
+                        return <option key={id} value={id}>{name}</option>
+                      })}
+                    </select>
+                  )}
+                  <FieldError msg={errors.providerId} />
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">

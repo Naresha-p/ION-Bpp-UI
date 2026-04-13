@@ -752,7 +752,7 @@ function EditModal({ item, onClose, onSaved }) {
               <div className="space-y-3">
 
                 {/* Resource ID — read-only */}
-                <div>
+                {/* <div>
                   <Label>Resource ID <span className="normal-case text-gray-400 font-normal">(read-only)</span></Label>
                   <div className="beckn-input font-mono text-xs select-all cursor-default truncate" style={{ background: 'var(--surface-r)', color: 'var(--text-3)' }}>
                     {resourceId}
@@ -764,7 +764,7 @@ function EditModal({ item, onClose, onSaved }) {
                   <input className={`beckn-input ${errors.offerId ? 'border-red-400' : ''}`}
                     value={form.offerId} onChange={(e) => set('offerId', e.target.value)} />
                   <FieldError msg={errors.offerId} />
-                </div>
+                </div> */}
 
                 <div>
                   <Label required>Provider ID</Label>
@@ -1126,7 +1126,7 @@ function DeleteConfirmModal({ item, onConfirm, onClose, loading }) {
 
 // ─── Product Card ─────────────────────────────────────────────────────────────
 
-function ProductCard({ item, onEdit }) {
+function ProductCard({ item, onEdit, onDelete }) {
   const price      = item.unitPrice ?? item.price?.value
   const currency   = item.currency || item.price?.currency || 'IDR'
   const name       = item.name || item.descriptor?.name || '—'
@@ -1199,11 +1199,18 @@ function ProductCard({ item, onEdit }) {
 
         <div className="flex gap-1.5 pt-1">
           <button onClick={() => onEdit(item)}
-            className="w-full flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-lg text-xs font-semibold transition-all"
+            className="flex-1 flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-lg text-xs font-semibold transition-all"
             style={{ border: '1px solid var(--border)', color: 'var(--text-2)', background: 'transparent' }}
             onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.5)'; e.currentTarget.style.color = '#a5b4fc'; e.currentTarget.style.background = 'rgba(99,102,241,0.08)' }}
             onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-2)'; e.currentTarget.style.background = 'transparent' }}>
             <Edit2 size={12} /> Edit
+          </button>
+          <button onClick={() => onDelete(item)}
+            className="flex-1 flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-lg text-xs font-semibold transition-all"
+            style={{ border: '1px solid var(--border)', color: 'var(--text-2)', background: 'transparent' }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(244,63,94,0.4)'; e.currentTarget.style.color = '#fda4af'; e.currentTarget.style.background = 'rgba(244,63,94,0.08)' }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-2)'; e.currentTarget.style.background = 'transparent' }}>
+            <Trash2 size={12} /> Delete
           </button>
         </div>
       </div>
@@ -1365,6 +1372,7 @@ export default function ProductsPage() {
               key={item.resourceId || item._id || item.id || i}
               item={item}
               onEdit={setEditItem}
+              onDelete={setDeleteItem}
             />
           ))}
         </div>

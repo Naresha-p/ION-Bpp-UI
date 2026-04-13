@@ -70,6 +70,13 @@ export function getOrder(id) {
   return bppClient.get(`/orders/${id}`)
 }
 
+// ─── Providers ────────────────────────────────────────────────────────────────
+
+/** GET /providers → array of providers */
+export function getProviders() {
+  return bppClient.get('/providers')
+}
+
 // ─── Products ─────────────────────────────────────────────────────────────────
 
 /** GET /products?page=&limit= → { products, pagination } */
